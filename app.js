@@ -1061,9 +1061,13 @@
   const mobileBtn2 = document.getElementById("mobileBtn2");
   const mobileBtn3 = document.getElementById("mobileBtn3");
 
-  // Check if device is mobile
-  const isMobile = () => window.innerWidth <= 768 ||
-                         (typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
+  // Check if device is mobile (only by screen width for desktop, check both for actual mobile devices)
+  const isMobile = () => {
+    // On desktop browsers: use screen width only
+    if (window.innerWidth > 768) return false;
+    // On actual mobile/tablet: screen width <= 768px shows buttons
+    return true;
+  };
 
   // Show/hide mobile buttons based on prompt type
   const updateMobileButtons = () => {
