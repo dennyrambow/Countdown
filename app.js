@@ -1677,11 +1677,17 @@
   fetch("https://api.github.com/repos/dennyrambow/Countdown/commits/main")
     .then((r) => r.json())
     .then((data) => {
+      console.log("GitHub API response:", data);
       const el = document.getElementById("version");
+      console.log("Version element found:", !!el);
+
       if (el && data.sha && data.commit && data.commit.message) {
         const commitMsg = data.commit.message;
         const commitHash = data.sha.slice(0, 7);
         let [major, minor, patch] = CONFIG.VERSION.split(".").map(Number);
+
+        console.log("Commit message:", commitMsg);
+        console.log("Base version:", CONFIG.VERSION);
 
         // Parse commit message prefix to determine version bump
         if (commitMsg.startsWith("MAJOR:")) {
@@ -1698,9 +1704,14 @@
 
         const newVersion = `${major}.${minor}.${patch}`;
         el.textContent = `v${newVersion}-${commitHash}`;
+        console.log("Version badge updated to:", el.textContent);
+      } else {
+        console.log("Missing data fields - sha:", data.sha, "commit:", data.commit);
       }
     })
-    .catch(() => {});
+    .catch((err) => {
+      console.error("Version badge fetch failed:", err);
+    });
 
   // Start flow
   FLOW().catch((err) => {
