@@ -405,7 +405,7 @@ html, body {
   gap: 10px;
   padding: 16px;
   position: fixed;
-  bottom: 0;
+  bottom: 36px;
   left: 0;
   right: 0;
   background: rgba(0, 0, 0, 0.95);
@@ -446,9 +446,9 @@ html, body {
 
 /* Hide keyboard input on mobile, show buttons instead */
 @media (max-width: 768px) {
-  /* Extra bottom padding for mobile buttons */
+  /* Extra bottom padding for mobile buttons (buttons at bottom:36px, ~80px tall = 116px from bottom) */
   .terminalInner {
-    padding-bottom: 160px;
+    padding-bottom: 130px;
   }
 
   /* Hide hidden input field on mobile */
