@@ -990,27 +990,41 @@
   const FLOW = async () => {
     focusInput();
 
-    // ========== SCENE 1: Boot ==========
+    // ========== SCENE 1: Boot Sequence with Audio ==========
     await term.clearScene();
 
+    // Minimal static prompt for first user interaction
+    // This unlocks the AudioContext browser restriction
+    await term.waitForEnter("[ PRESS ENTER TO INITIALIZE ]");
+
+    // FIRST USER INTERACTION — Audio unlocked
+    await AudioBus.start();
+
+    // Modem/connection sound: 0.8s "connecting to distant galaxy"
+    AudioBus.sfx.modem(0.8);
+    await term.sleep(900);
+
+    // Boot sequence now WITH audio (type clicks play automatically)
     const initLine = await term.typeLine("INITIALIZING SYSTEM", { dim: true, durationMs: 1600 });
     initLine.classList.add("system-dots");
-    await term.sleep(600);
-    const channelLine = await term.typeLine("SECURE CHANNEL ESTABLISHED", { dim: true, durationMs: 2000 });
-    channelLine.classList.add("system-dots");
-    await term.sleep(600);
-    const transmitLine = await term.typeLine("TRANSMISSION RECEIVED", { dim: true, durationMs: 1800 });
-    transmitLine.classList.add("system-dots");
+    await term.sleep(300);
+    AudioBus.sfx.beep(400, 0.15); // Low beep confirmation
     await term.sleep(400);
 
-    term.appendBlank();
-    await term.typeLine("PRESS ENTER TO CONTINUE", { durationMs: 2000 });
+    const channelLine = await term.typeLine("SECURE CHANNEL ESTABLISHED", { dim: true, durationMs: 2000 });
+    channelLine.classList.add("system-dots");
+    await term.sleep(300);
+    AudioBus.sfx.beep(600, 0.15); // Mid beep
+    await term.sleep(400);
 
-    await term.waitForEnter();
+    const transmitLine = await term.typeLine("TRANSMISSION RECEIVED", { dim: true, durationMs: 1800 });
+    transmitLine.classList.add("system-dots");
+    await term.sleep(300);
+    AudioBus.sfx.beep(800, 0.15); // High beep
+    await term.sleep(600);
 
-    // Start audio after first user interaction
-    await AudioBus.start();
-    AudioBus.sfx.tripleBeep();
+    // Loading transition to Scene 2
+    await term.loadingBar(2000);
 
     // ========== SCENE 2: Mission Invite ==========
     await term.clearScene();
