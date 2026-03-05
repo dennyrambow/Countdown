@@ -1305,7 +1305,7 @@
   };
 
   // Auto-update version badge from GitHub commit hash
-  fetch("https://api.github.com/repos/dennyrambow/Countdown-40-Landing-Page/commits/main")
+  fetch("https://api.github.com/repos/dennyrambow/Countdown/commits/main")
     .then((r) => r.json())
     .then((data) => {
       const el = document.getElementById("version");
