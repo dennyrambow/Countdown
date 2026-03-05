@@ -1054,6 +1054,93 @@
   });
 
   // =============================
+  // MOBILE BUTTONS (iPhone/Touch)
+  // =============================
+  const mobileButtons = document.getElementById("mobileButtons");
+  const mobileBtn1 = document.getElementById("mobileBtn1");
+  const mobileBtn2 = document.getElementById("mobileBtn2");
+  const mobileBtn3 = document.getElementById("mobileBtn3");
+
+  // Check if device is mobile
+  const isMobile = () => window.innerWidth <= 768 ||
+                         (typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
+
+  // Show/hide mobile buttons based on prompt type
+  const updateMobileButtons = () => {
+    if (!isMobile()) {
+      mobileButtons.classList.remove("show");
+      return;
+    }
+
+    // Show ENTER button when waiting for Enter
+    if (term._waitingEnter) {
+      mobileBtn1.textContent = "ENTER";
+      mobileBtn1.style.display = "block";
+      mobileBtn2.style.display = "none";
+      mobileBtn3.style.display = "none";
+      mobileButtons.classList.add("show");
+      return;
+    }
+
+    // Show YES/NO buttons for Y/N prompts
+    if (term.currentPrompt && term.currentPrompt.validator === validateYN) {
+      mobileBtn1.textContent = "YES";
+      mobileBtn1.style.display = "block";
+      mobileBtn2.textContent = "NO";
+      mobileBtn2.style.display = "block";
+      mobileBtn3.style.display = "none";
+      mobileButtons.classList.add("show");
+      return;
+    }
+
+    // Hide buttons for text input prompts (use keyboard)
+    mobileButtons.classList.remove("show");
+  };
+
+  // Button click handlers
+  mobileBtn1.addEventListener("click", () => {
+    if (term._waitingEnter) {
+      // Simulate ENTER key press
+      term.handleKey({ key: "Enter", preventDefault: () => {} });
+    } else if (term.currentPrompt && term.currentPrompt.validator === validateYN) {
+      // YES response
+      term.handleKey({ key: "Y", preventDefault: () => {} });
+      term.handleKey({ key: "Enter", preventDefault: () => {} });
+    }
+    updateMobileButtons();
+  });
+
+  mobileBtn2.addEventListener("click", () => {
+    if (term.currentPrompt && term.currentPrompt.validator === validateYN) {
+      // NO response
+      term.handleKey({ key: "N", preventDefault: () => {} });
+      term.handleKey({ key: "Enter", preventDefault: () => {} });
+    }
+    updateMobileButtons();
+  });
+
+  // Update mobile buttons whenever prompts change
+  const origPrompt = term.prompt.bind(term);
+  term.prompt = function(...args) {
+    const result = origPrompt(...args);
+    updateMobileButtons();
+    return result;
+  };
+
+  const origWaitForEnter = term.waitForEnter.bind(term);
+  term.waitForEnter = function(...args) {
+    const result = origWaitForEnter(...args);
+    updateMobileButtons();
+    return result;
+  };
+
+  const origClearScene = term.clearScene.bind(term);
+  term.clearScene = function(...args) {
+    mobileButtons.classList.remove("show");
+    return origClearScene(...args);
+  };
+
+  // =============================
   // VALIDATORS
   // =============================
   const validateYN = (s) => {
