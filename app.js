@@ -620,7 +620,6 @@
   class TerminalEngine {
     constructor(root) {
       this.root = root;
-      this.scrollEl = this.root.parentElement; // #terminal (overflow-y: auto)
       this.currentPrompt = null;
       this._waitingEnter = null;
       this._countdownInterval = null;
@@ -630,9 +629,20 @@
       this.lineCount = 0;
     }
 
+    // Switch content to vertically centered (e.g. address scene)
+    setCentered() {
+      this.root.style.justifyContent = 'center';
+    }
+
+    // Restore cinematic bottom-up flow mode
+    setFlowMode() {
+      this.root.style.justifyContent = 'flex-end';
+    }
+
     async clearScene() {
-      // Scroll to top and clear all content
+      // Clear all content and restore flow mode
       this.root.innerHTML = "";
+      this.root.style.justifyContent = ''; // Reset to CSS default (flex-end)
       this.lineCount = 0;
       // Stop any running progress ticks
       AudioBus.stopProgressTicks();
@@ -699,7 +709,6 @@
         if (this._destroyed) return;
         el.textContent += text[i];
         if (text[i] !== " ") AudioBus.sfx.type();
-        if (this.scrollEl) this.scrollEl.scrollTop = this.scrollEl.scrollHeight;
 
         const speed = glitch ? this._getGlitchSpeed(actualSpeed) : actualSpeed;
         await this.sleep(speed);
@@ -707,8 +716,13 @@
       return el;
     }
 
-    // Loading bar: 0→100%, no label text, removed immediately after
+    // Loading bar: 0→100%, full black screen overlay, removed immediately after
     async loadingBar(durationMs = 2000, steps = 28, { silent = false } = {}) {
+      // Full-screen black overlay so no other content shows behind the bar
+      const overlay = document.createElement("div");
+      overlay.style.cssText = "position:fixed;inset:0;background:#000;z-index:48;pointer-events:none;";
+      document.body.appendChild(overlay);
+
       const line = document.createElement("div");
       line.className = "line loading-centered";
       this.root.appendChild(line);
@@ -728,8 +742,9 @@
         line.textContent = `[${filled}${empty}] ${String(pct).padStart(3, " ")}%`;
         await this.sleep(stepDelay);
       }
-      // Remove immediately after reaching 100%
+      // Remove bar and overlay after reaching 100%
       try { line.remove(); } catch {}
+      overlay.remove();
       if (!silent) AudioBus.stopProgressTicks(); // Ensure ticks are stopped
       return line;
     }
@@ -1732,19 +1747,20 @@
     await term.sleep(3000);
 
     term.appendBlank();
-    term.appendBlank();
-    const locationLine = await term.typeLine("LOCATION RECEIVED", { durationMs: 2000 });
+    const locationLine = await term.typeLine("LOCATION RECEIVED", { durationMs: 1400 });
     locationLine.classList.add("blink-line");
-    await term.sleep(10000); // Blink for 10 seconds
+    await term.sleep(3000); // Brief blink, then clear for isolated address view
 
-    term.appendBlank();
-    // Only the address in the box
-    const addressOnly = CONFIG.ADDRESS_TEXT.slice(1); // Skip "LOCATION RECEIVED"
+    // Clear all text — show ONLY the address box, centered on black screen
+    await term.clearScene();
+    term.setCentered();
+
     AudioBus.sfx.addressReveal();
+    const addressOnly = CONFIG.ADDRESS_TEXT.slice(1); // Skip "LOCATION RECEIVED"
     const addressBlock = term.appendBlock(addressOnly);
     addressBlock.classList.add("blink-line");
 
-    await term.sleep(10000); // Wait 10 seconds after address appears
+    await term.sleep(10000); // 10 seconds to read address before input appears
 
     let locationConfirmed = false;
     while (!locationConfirmed) {
@@ -1768,7 +1784,7 @@
         if (isReallySure === "Y") {
           // Confirmed No - grant additional time
           term.appendBlank();
-          await term.typeLine("ADDITIONAL TIME GRANTED.", { dim: true, durationMs: 2400 });
+          await term.typeLine("ADDITIONAL TIME GRANTED.", { dim: true, durationMs: 1400 });
           term.appendBlank();
           await term.sleep(10000); // 10 seconds to memorize
         } else {
@@ -1778,10 +1794,11 @@
       }
     }
 
+    // Restore cinematic flow for self-destruct scene
+    term.setFlowMode();
+
     // ========== SCENE 6: Self-Destruct ==========
-    // Keep address on screen, don't clear. Just wipe after countdown.
-    term.appendBlank();
-    term.appendBlank();
+    await term.clearScene();
     await term.loadingBar(2000);
 
     await term.typeLine("THIS BRIEFING WILL SELF-DESTRUCT IN", { dim: true, durationMs: 2400 });
