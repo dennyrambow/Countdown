@@ -21,7 +21,7 @@
 
     EVENT_DETAILS: [
       "DATE: MONDAY · MARCH 9 2026",
-      "START: ~21:00",
+      "START: ~ 21:00:00 CET",
       "EXECUTION: 10 MARCH · 00:00:00 CET",
       "DRESSCODE: URBAN STEALTH · BERLIN CASUAL",
       "EXIT STRATEGY: LEAVE ANYTIME",
@@ -444,16 +444,18 @@
     };
 
     // Tension loop: rising sawtooth wave for countdown drama
+    // Gain: ramp up over 2s → sustain near peak → decay in final 0.5s
     const playTensionLoop = (duration = 5.0) => {
       try {
         const now = ctx().currentTime;
         const osc = ctx().createOscillator();
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(60, now);
-        osc.frequency.exponentialRampToValueAtTime(180, now + duration);
-        const env = gain(0.06);
-        env.gain.setValueAtTime(0.06, now);
-        env.gain.linearRampToValueAtTime(0.14, now + duration * 0.8);
+        osc.frequency.exponentialRampToValueAtTime(200, now + duration);
+        const env = gain(0);
+        env.gain.setValueAtTime(0, now);
+        env.gain.linearRampToValueAtTime(0.16, now + 2);
+        env.gain.setValueAtTime(0.16, now + Math.max(2.1, duration - 0.5));
         env.gain.exponentialRampToValueAtTime(0.001, now + duration);
         connect(osc, env, ctx().destination);
         osc.start(now);
@@ -706,7 +708,7 @@
     }
 
     // Loading bar: 0→100%, no label text, removed immediately after
-    async loadingBar(durationMs = 2000, steps = 28) {
+    async loadingBar(durationMs = 2000, steps = 28, { silent = false } = {}) {
       const line = document.createElement("div");
       line.className = "line loading-centered";
       this.root.appendChild(line);
@@ -715,8 +717,8 @@
       const stepDelay = Math.max(10, Math.floor(durationMs / steps));
       let currentPercent = 0;
 
-      // Start dynamic modem-style ticking
-      AudioBus.startProgressTicks(() => currentPercent);
+      // Start dynamic modem-style ticking (unless silent)
+      if (!silent) AudioBus.startProgressTicks(() => currentPercent);
 
       for (let i = 0; i <= steps; i++) {
         const pct = Math.floor((i / steps) * 100);
@@ -728,7 +730,7 @@
       }
       // Remove immediately after reaching 100%
       try { line.remove(); } catch {}
-      AudioBus.stopProgressTicks(); // Ensure ticks are stopped
+      if (!silent) AudioBus.stopProgressTicks(); // Ensure ticks are stopped
       return line;
     }
 
@@ -1273,34 +1275,37 @@
   // =============================
   // FERNSEHTURM ASCII ART
   // =============================
+  // =============================
+  // ROOFTOP PIXEL ART
+  // =============================
+  const ROOFTOP_ART = [
+    "  ┌─────────────────┐  ",
+    "  │ READY FOR       │  ",
+    "  │ LEVEL  40_      │  ",
+    "  └─────────────────┘  ",
+    "   │   ▄▄ ░░▄▄█▄        ",
+    "  ─┼─  ██ ░▄█▀█▄  ▒▒▓  ",
+    "   │   ██ ░███▀█  ▒▒▓  ",
+    "  ═╧═  ██ ░█   █ ▓▓▓▓  ",
+    "  ┌┐┌┐ ▀▀▀▀▀▀  ▀ ▓▓▓   ",
+    "  └┘└┘ ~ ~ ~ ~ ~ ~     ",
+  ];
+
   const FERNSEHTURM_ART = [
-    "          │          ",
-    "          │          ",
-    "          │          ",
-    "          │          ",
-    "          │          ",
-    "          │          ",
-    "         ╓┤╖         ",
-    "       ╔═╝·╚═╗       ",
-    "      ╔╝·····╚╗      ",
-    "      ║·······║      ",
-    "      ╠═══════╣      ",
-    "      ║·······║      ",
-    "      ╚╗·····╔╝      ",
-    "       ╚═╗·╔═╝       ",
-    "         ╚╤╝         ",
-    "          │          ",
-    "         ─┼─         ",
-    "          │          ",
-    "         ─┼─         ",
-    "          │          ",
-    "         ─┼─         ",
-    "          │          ",
-    "         ─┼─         ",
-    "          │          ",
-    "   ═══════╧═══════   ",
-    " ┌┐ ┌──┐  ┌──┐ ┌┐  ",
-    " └┘ └──┘  └──┘ └┘  ",
+    "    │    ",
+    "    │    ",
+    "   ╓┤╖   ",
+    "  ╔╝·╚╗  ",
+    "  ║·····║  ",
+    "  ╠═══╣  ",
+    "  ╚╗·╔╝  ",
+    "   ╚╤╝   ",
+    "    │    ",
+    "   ─┼─   ",
+    "    │    ",
+    " ════╧════ ",
+    " ┌┐  ┌┐  ",
+    " └┘  └┘  ",
   ];
 
   // =============================
@@ -1314,8 +1319,8 @@
 
     // Minimal static prompt for first user interaction
     // This unlocks the AudioContext browser restriction
-    await term.typeLine("♪  SOUND ON · TURN UP YOUR VOLUME", { dim: true, durationMs: 1200 });
-    await term.sleep(800);
+    term.appendLine("♪  SOUND ON — TURN UP YOUR VOLUME  📢", { cls: "info-hint" });
+    await term.sleep(400);
     await term.waitForEnter("[ PRESS ENTER TO INITIALIZE ]");
 
     // FIRST USER INTERACTION — Unlock audio for iOS
@@ -1352,7 +1357,7 @@
     await term.clearScene();
     await term.loadingBar(2000);
 
-    await term.typeLine("HELLO AGENT", { durationMs: 1000 });
+    await term.typeLine("HELLO AGENT,", { durationMs: 1000 });
     await term.sleep(2000);
     await term.typeLine("YOU ARE INVITED!", { durationMs: 1400 });
     await term.sleep(2000);
@@ -1447,7 +1452,6 @@
     AudioBus.sfx.beep(1200, 0.15);
     await term.sleep(600);
 
-    await term.loadingBar(1600);
     await term.clearScene();
     await term.loadingBar(1600);
 
@@ -1456,7 +1460,8 @@
     await term.typeLine("TO UNIT ROOFTOP.", { durationMs: 1000 });
     await term.sleep(1500);
 
-    term.appendBlock(FERNSEHTURM_ART);
+    const fernsehturmBlock = term.appendBlock(FERNSEHTURM_ART);
+    fernsehturmBlock.classList.add("fernsehturm");
     await term.sleep(4000);
 
     const ready = await promptYNWithConfirmation("READY FOR YOUR MISSION BRIEFING? [Y/N]");
@@ -1661,7 +1666,8 @@
 
     const uplinkLine = await term.typeLine("UPLINKING DATA", { dim: true, durationMs: 1400 });
     uplinkLine.classList.add("system-dots");
-    await term.progressBar("UPLINK", 50, 100, { startAt: 0, capPercent: 100, endAtStep: 50 });
+    AudioBus.sfx.modem(2.5); // Uplink: modem sound instead of standard progress ticks
+    await term.loadingBar(2500, 16, { silent: true }); // Short bar (fits one line), silent ticks
 
     let postResult = null;
     try {
@@ -1699,12 +1705,19 @@
 
     await term.clearScene();
 
-    await term.typeLine("MISSION ACCEPTED.", { durationMs: 2000 });
+    await term.typeLine("MISSION ACCEPTED.", { durationMs: 1400 });
     await term.sleep(500);
     const agentName = plus_one ? `${String(name).toUpperCase()} (+1)` : String(name).toUpperCase();
-    await term.typeLine(`AGENT: ${agentName}`, { dim: true, durationMs: 2000 });
+    await term.typeLine(`AGENT: ${agentName}`, { dim: true, durationMs: 1400 });
 
-    term.appendBlank();
+    await term.sleep(1000);
+    const readyLocation = await promptYNWithConfirmation("READY TO RECEIVE LOCATION? [Y/N]");
+    if (readyLocation === "N") {
+      await term.typeLine("STAND BY.", { dim: true, durationMs: 800 });
+      await term.sleep(3000);
+    }
+    await term.sleep(500);
+
     term.appendBlank();
     const transLine = await term.typeLine("TRANSMITTING COORDINATES", { dim: true, durationMs: 1400 });
     transLine.classList.add("system-dots");
@@ -1773,9 +1786,9 @@
 
     await term.typeLine("THIS BRIEFING WILL SELF-DESTRUCT IN", { dim: true, durationMs: 2400 });
 
-    // Countdown total duration for tension sound (~11s)
-    const totalCountdownMs = (CONFIG.SELF_DESTRUCT_SECONDS + 1) * 1100;
-    AudioBus.sfx.tensionLoop(totalCountdownMs / 1000);
+    // Tension swell: exactly matches countdown duration (SELF_DESTRUCT_SECONDS × 1.1s per tick)
+    const countdownTotalSec = CONFIG.SELF_DESTRUCT_SECONDS * 1.1 + 1.5;
+    AudioBus.sfx.tensionLoop(countdownTotalSec);
 
     for (let i = CONFIG.SELF_DESTRUCT_SECONDS; i >= 0; i--) {
       const intensity = 1 - (i / CONFIG.SELF_DESTRUCT_SECONDS); // 0 at 10, 1 at 0
@@ -1828,6 +1841,9 @@
 
     term.appendBlank();
     await term.typeLine("THANK YOU FOR YOUR SERVICE, AGENT.", { durationMs: 1400 });
+    await term.sleep(1000);
+    const rooftopBlock = term.appendBlock(ROOFTOP_ART);
+    rooftopBlock.classList.add("fernsehturm");
 
     // 30 seconds for footer
     await term.sleep(30000);
