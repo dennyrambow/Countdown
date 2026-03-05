@@ -351,7 +351,7 @@ html, body {
 
 /* ===== MOBILE OPTIMIZATION ===== */
 
-/* Mobile button container */
+/* Mobile button container - hidden by default (desktop), shown on mobile only */
 .mobile-buttons {
   display: none;
   gap: 10px;
@@ -366,12 +366,6 @@ html, body {
   width: 100%;
   max-width: var(--maxw);
   margin: 0 auto;
-}
-
-.mobile-buttons.show {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
 }
 
 /* Mobile button styling */
@@ -416,12 +410,10 @@ html, body {
     display: none !important;
   }
 
-  /* Show mobile buttons on mobile devices */
-  .mobile-buttons {
-    display: none;
-  }
-
+  /* Show mobile buttons on mobile devices only */
   .mobile-buttons.show {
-    display: flex;
+    display: flex !important;
+    flex-direction: row;
+    justify-content: space-between;
   }
 }
