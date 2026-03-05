@@ -236,29 +236,47 @@
       } catch {}
     };
 
-    // Progress step: sine frequency mapped to percent (0-100) — LINEAR with longer sustain for swell
+    // Progress step: deep bass swell (low frequencies, resonant build)
     const playProgressStep = (percent = 50) => {
       try {
-        const minFreq = 80;
-        const maxFreq = 2000;
-        const freq = minFreq + (maxFreq - minFreq) * (percent / 100); // Linear
         const now = ctx().currentTime;
-        const dur = 0.25; // Longer sustain for audible swell (was 0.06s)
-        const osc = ctx().createOscillator();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
+        const dur = 0.28; // Slightly longer for deep resonance
 
-        // Volume increases with progress for intensity effect
-        const baseVol = 0.06 + (percent / 100) * 0.08; // 0.06 → 0.14 as percent rises
+        // Deep fundamental bass: 40-110 Hz (subwoofer range)
+        const minFreq = 45;
+        const maxFreq = 110;
+        const baseFreq = minFreq + (maxFreq - minFreq) * (percent / 100);
 
-        const env = gain(baseVol);
-        env.gain.setValueAtTime(0.01, now); // Fade in quickly
-        env.gain.linearRampToValueAtTime(baseVol, now + 0.04); // Ramp to full volume
-        env.gain.exponentialRampToValueAtTime(0.001, now + dur); // Long fade out
+        // Main oscillator: deep sine wave
+        const osc1 = ctx().createOscillator();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(baseFreq, now);
 
-        connect(osc, env, ctx().destination);
-        osc.start(now);
-        osc.stop(now + dur);
+        // Sub-harmonic layer: even deeper (0.5x frequency for richness)
+        const osc2 = ctx().createOscillator();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(baseFreq * 0.5, now);
+
+        // Volume: builds with progress for intensity
+        const baseVol = 0.04 + (percent / 100) * 0.12; // 0.04 → 0.16
+
+        const env1 = gain(baseVol * 0.8);
+        env1.gain.setValueAtTime(0.005, now);
+        env1.gain.linearRampToValueAtTime(baseVol * 0.8, now + 0.06);
+        env1.gain.exponentialRampToValueAtTime(0.0005, now + dur);
+
+        const env2 = gain(baseVol * 0.4);
+        env2.gain.setValueAtTime(0.002, now);
+        env2.gain.linearRampToValueAtTime(baseVol * 0.4, now + 0.08);
+        env2.gain.exponentialRampToValueAtTime(0.0002, now + dur);
+
+        connect(osc1, env1, ctx().destination);
+        connect(osc2, env2, ctx().destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + dur);
+        osc2.stop(now + dur);
       } catch {}
     };
 
