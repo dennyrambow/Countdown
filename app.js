@@ -1673,41 +1673,29 @@
     await term.waitForEnter();
   };
 
-  // Auto-update version badge: parse commit message to determine version bump
-  fetch("https://api.github.com/repos/dennyrambow/Countdown/commits/main")
-    .then((r) => r.json())
-    .then((data) => {
-      console.log("GitHub API response:", data);
-      const el = document.getElementById("version");
-      console.log("Version element found:", !!el);
+  // Auto-update version badge: use commit count as patch version
+  // Every commit automatically increments: 1.0.{commit_count}
+  fetch("https://api.github.com/repos/dennyrambow/Countdown/commits?per_page=1")
+    .then((r) => {
+      const link = r.headers.get('Link') || "";
+      let commitCount = 1;
 
-      if (el && data.sha && data.commit && data.commit.message) {
-        const commitMsg = data.commit.message;
-        const commitHash = data.sha.slice(0, 7);
-        let [major, minor, patch] = CONFIG.VERSION.split(".").map(Number);
+      // Extract total commit count from Link header
+      // Format: <...?per_page=1&page=N>; rel="last"
+      const lastMatch = link.match(/page=(\d+).*rel="last"/);
+      if (lastMatch) commitCount = parseInt(lastMatch[1], 10);
 
-        console.log("Commit message:", commitMsg);
-        console.log("Base version:", CONFIG.VERSION);
-
-        // Parse commit message prefix to determine version bump
-        if (commitMsg.startsWith("MAJOR:")) {
-          major += 1;
-          minor = 0;
-          patch = 0;
-        } else if (commitMsg.startsWith("FEAT:")) {
-          minor += 1;
-          patch = 0;
-        } else {
-          // Default: patch bump for bug fixes, chores, etc.
-          patch += 1;
+      return r.json().then((data) => {
+        if (data.length > 0) {
+          const hash = data[0].sha.slice(0, 7);
+          const autoVersion = `1.0.${commitCount}`;
+          const el = document.getElementById("version");
+          if (el) {
+            el.textContent = `v${autoVersion}-${hash}`;
+            console.log(`Version: v${autoVersion}-${hash} (${commitCount} commits)`);
+          }
         }
-
-        const newVersion = `${major}.${minor}.${patch}`;
-        el.textContent = `v${newVersion}-${commitHash}`;
-        console.log("Version badge updated to:", el.textContent);
-      } else {
-        console.log("Missing data fields - sha:", data.sha, "commit:", data.commit);
-      }
+      });
     })
     .catch((err) => {
       console.error("Version badge fetch failed:", err);
