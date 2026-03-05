@@ -21,7 +21,7 @@
     EVENT_DETAILS: [
       "DATE: MONDAY · MARCH 9 2026",
       "START: ~21:00",
-      "EXECUTION: 10. MÄRZ 0:00",
+      "EXECUTION: 10. MÄRZ · 00:00:00 UHR",
       "DRESSCODE: URBAN STEALTH · BERLIN CASUAL",
       "EXIT STRATEGY: LEAVE ANYTIME",
       "",
@@ -72,6 +72,7 @@
   const AudioBus = (() => {
     let audioContext = null;
     let loopNode = null;
+    let tickerNode = null;
 
     const ctx = () => {
       if (!audioContext) {
@@ -234,14 +235,14 @@
       } catch {}
     };
 
-    // Progress step: sine frequency mapped to percent (0-100)
+    // Progress step: sine frequency mapped to percent (0-100) — LINEAR for steady swell
     const playProgressStep = (percent = 50) => {
       try {
         const minFreq = 80;
         const maxFreq = 2000;
-        const freq = minFreq * Math.pow(maxFreq / minFreq, percent / 100);
+        const freq = minFreq + (maxFreq - minFreq) * (percent / 100); // Linear
         const now = ctx().currentTime;
-        const dur = 0.05;
+        const dur = 0.06; // Slightly longer for swell effect
         const osc = ctx().createOscillator();
         osc.type = 'sine';
         osc.frequency.value = freq;
@@ -355,14 +356,66 @@
       } catch {}
     };
 
-    // Background loop: countdown second ticker + sub-bass drone
+    // Bomb tick: short beep that increases in frequency/intensity (0.0=slow, 1.0=fast)
+    const playBombTick = (intensity = 0.5) => {
+      try {
+        const now = ctx().currentTime;
+        const freq = 200 + intensity * 800; // 200 Hz (cold) → 1000 Hz (hot)
+        const vol = 0.1 + intensity * 0.2;
+        const osc = ctx().createOscillator();
+        osc.type = 'square';
+        osc.frequency.value = freq;
+        const env = gain(vol);
+        env.gain.setValueAtTime(vol, now);
+        env.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+        connect(osc, env, ctx().destination);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      } catch {}
+    };
+
+    // Tension loop: rising sawtooth wave for countdown drama
+    const playTensionLoop = (duration = 5.0) => {
+      try {
+        const now = ctx().currentTime;
+        const osc = ctx().createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(60, now);
+        osc.frequency.exponentialRampToValueAtTime(180, now + duration);
+        const env = gain(0.06);
+        env.gain.setValueAtTime(0.06, now);
+        env.gain.linearRampToValueAtTime(0.14, now + duration * 0.8);
+        env.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        connect(osc, env, ctx().destination);
+        osc.start(now);
+        osc.stop(now + duration);
+      } catch {}
+    };
+
+    // Sub-bass drone only (ticker starts separately with startTicker)
     const startLoop = () => {
       try {
         if (audioContext && audioContext.state === 'suspended') {
           audioContext.resume();
         }
 
-        let loopTimer = null;
+        // Sub-bass drone for atmosphere
+        const droneOsc = ctx().createOscillator();
+        droneOsc.type = 'sine';
+        droneOsc.frequency.value = 40;
+        const droneGain = gain(CONFIG.AUDIO.volumeLoop * 0.4);
+        connect(droneOsc, droneGain, ctx().destination);
+        droneOsc.start();
+
+        loopNode = { drone: droneOsc, droneGain };
+      } catch {}
+    };
+
+    // Countdown second ticker (starts only when sticky countdown is visible)
+    const startTicker = () => {
+      try {
+        if (tickerNode) return; // Avoid double start
+
         let nextTick = ctx().currentTime + 0.05;
 
         const playTick = (t) => {
@@ -386,14 +439,6 @@
           } catch {}
         };
 
-        // Sub-bass drone for atmosphere
-        const droneOsc = ctx().createOscillator();
-        droneOsc.type = 'sine';
-        droneOsc.frequency.value = 40;
-        const droneGain = gain(CONFIG.AUDIO.volumeLoop * 0.4);
-        connect(droneOsc, droneGain, ctx().destination);
-        droneOsc.start();
-
         const schedule = () => {
           const lookahead = ctx().currentTime + 0.2;
           while (nextTick < lookahead) {
@@ -402,16 +447,25 @@
           }
         };
 
-        loopTimer = setInterval(schedule, 100);
+        const timer = setInterval(schedule, 100);
         schedule();
-        loopNode = { drone: droneOsc, droneGain, timer: loopTimer };
+        tickerNode = { timer };
+      } catch {}
+    };
+
+    const stopTicker = () => {
+      try {
+        if (tickerNode) {
+          clearInterval(tickerNode.timer);
+          tickerNode = null;
+        }
       } catch {}
     };
 
     const stopLoop = () => {
       try {
+        stopTicker();
         if (loopNode) {
-          clearInterval(loopNode.timer);
           loopNode.droneGain.gain.exponentialRampToValueAtTime(0.0001, ctx().currentTime + 0.5);
           setTimeout(() => {
             if (loopNode?.drone) {
@@ -426,6 +480,7 @@
     return {
       start: startLoop,
       stop: stopLoop,
+      startTicker,
       sfx: {
         type: playTypeClick,
         beep: playBeep,
@@ -440,6 +495,8 @@
         enterConfirm: playEnterConfirm,
         modem: playModem,
         addressReveal: playAddressReveal,
+        bombTick: playBombTick,
+        tensionLoop: playTensionLoop,
       },
     };
   })();
@@ -1096,12 +1153,28 @@
     term.appendBlank();
     const scanLine = await term.typeLine("SCANNING AGENT CREDENTIALS", { dim: true, durationMs: 1800 });
     scanLine.classList.add("system-dots");
-    await term.sleep(500);
+    AudioBus.sfx.modem(1.5); // Analysis chaos sound
+    await term.sleep(1800); // Long pause for analysis
+
+    // Rising analysis beeps (system scanning)
+    AudioBus.sfx.beep(300, 0.1);
+    await term.sleep(200);
+    AudioBus.sfx.beep(500, 0.1);
+    await term.sleep(200);
+    AudioBus.sfx.beep(700, 0.1);
+    await term.sleep(200);
+    AudioBus.sfx.beep(900, 0.1);
+    await term.sleep(400);
+
     const verifyLine = await term.typeLine("VERIFYING IDENTITY", { dim: true, durationMs: 1800 });
     verifyLine.classList.add("system-dots");
-    await term.sleep(500);
+    AudioBus.sfx.modem(0.8);
+    await term.sleep(1200);
+
     const confirmLine = await term.typeLine("SECURE CHANNEL CONFIRMED", { dim: true, durationMs: 1800 });
     confirmLine.classList.add("system-dots");
+    await term.sleep(400);
+    AudioBus.sfx.beep(1200, 0.15); // High confirm beep
     await term.sleep(300);
     await term.typeLine("IDENTITY APPROVED", { durationMs: 2000 });
 
@@ -1125,6 +1198,7 @@
     await term.clearScene();
     await term.loadingBar(2000);
     term.startStickyCountdown();
+    AudioBus.startTicker(); // Countdown ticks start here
 
     // Show progress bars before briefing
     term.appendBlank();
@@ -1212,6 +1286,7 @@
         await term.clearScene();
         await term.loadingBar(2000);
         term.startStickyCountdown();
+        AudioBus.startTicker(); // Restart ticks for replayed briefing
 
         await term.typeLine("REPLAYING BRIEFING (SHORT VERSION)...", { dim: true, durationMs: 2400 });
         await term.sleep(1200);
@@ -1423,7 +1498,14 @@
 
     await term.typeLine("THIS BRIEFING WILL SELF-DESTRUCT IN", { dim: true, durationMs: 2400 });
 
+    // Countdown total duration for tension sound (~11s)
+    const totalCountdownMs = (CONFIG.SELF_DESTRUCT_SECONDS + 1) * 1100;
+    AudioBus.sfx.tensionLoop(totalCountdownMs / 1000);
+
     for (let i = CONFIG.SELF_DESTRUCT_SECONDS; i >= 0; i--) {
+      const intensity = 1 - (i / CONFIG.SELF_DESTRUCT_SECONDS); // 0 at 10, 1 at 0
+      AudioBus.sfx.bombTick(intensity);
+
       await term.typeLine(String(i), { durationMs: 800 });
       await term.sleep(300);
     }
@@ -1433,6 +1515,9 @@
 
     term.stopStickyCountdown();
     await term.wipeScreenAnimated();
+
+    // Stop all audio after destruction
+    AudioBus.stop();
 
     stickyBar.classList.remove("on");
     await term.blackOut(2000);
