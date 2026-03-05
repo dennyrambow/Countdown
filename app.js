@@ -82,6 +82,19 @@
       return audioContext;
     };
 
+    // iOS audio unlock: must be called within a user gesture handler
+    const unlockAudio = async () => {
+      const audioCtx = ctx();
+      if (audioCtx.state === 'suspended') {
+        try {
+          await audioCtx.resume();
+          console.log("Audio context resumed for iOS");
+        } catch (e) {
+          console.error("Failed to resume audio context:", e);
+        }
+      }
+    };
+
     const gain = (value = 1) => {
       const g = ctx().createGain();
       g.gain.value = value;
@@ -577,6 +590,7 @@
       startTicker,
       startProgressTicks,
       stopProgressTicks,
+      unlockAudio,
       sfx: {
         type: playTypeClick,
         beep: playBeep,
@@ -1165,7 +1179,8 @@
     // This unlocks the AudioContext browser restriction
     await term.waitForEnter("[ PRESS ENTER TO INITIALIZE ]");
 
-    // FIRST USER INTERACTION — Audio unlocked
+    // FIRST USER INTERACTION — Unlock audio for iOS
+    await AudioBus.unlockAudio();
     await AudioBus.start();
 
     // Modem/connection sound: 0.8s "connecting to distant galaxy"
