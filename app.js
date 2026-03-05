@@ -1682,8 +1682,11 @@
       let commitCount = 1;
 
       // Extract total commit count from Link header
-      // Format: <...?per_page=1&page=N>; rel="last"
-      const lastMatch = link.match(/page=(\d+).*rel="last"/);
+      // The Link header has: <...&page=2>; rel="next", <...&page=18>; rel="last"
+      // We need to extract the page number from the "last" link only
+      const lastLinkPart = link.split(',').find((part) => part.includes('rel="last"')) || "";
+      console.log("Last link part:", lastLinkPart);
+      const lastMatch = lastLinkPart.match(/page=(\d+)/);
       console.log("Link header match:", lastMatch);
       if (lastMatch) {
         commitCount = parseInt(lastMatch[1], 10);
