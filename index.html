@@ -16,7 +16,10 @@
     </div>
 
     <!-- Main terminal content area -->
-    <div id="terminalInner" class="terminalInner" aria-live="polite"></div>
+    <div id="terminalInner" class="terminalInner" aria-live="polite">
+      <!-- Tap-to-focus hint (position:absolute within terminalInner) -->
+      <div id="hint" class="hint">tap to focus</div>
+    </div>
 
     <!-- Hidden input for keyboard capture (mobile-safe) -->
     <input
@@ -30,19 +33,18 @@
       aria-hidden="true"
     />
 
-    <!-- Tap-to-focus hint -->
-    <div id="hint" class="hint">tap to focus</div>
-
-    <!-- Mobile button interface (shown on touch devices) -->
+    <!-- Button zone — always reserves space (80px), buttons shown/hidden by JS -->
     <div id="mobileButtons" class="mobile-buttons">
       <button id="mobileBtn1" class="mobile-button">ENTER</button>
-      <button id="mobileBtn2" class="mobile-button" style="display:none;">YES</button>
-      <button id="mobileBtn3" class="mobile-button" style="display:none;">NO</button>
+      <button id="mobileBtn2" class="mobile-button">YES</button>
+      <button id="mobileBtn3" class="mobile-button">NO</button>
+    </div>
+
+    <!-- Version zone — always at bottom of terminal -->
+    <div class="version-bar">
+      <span id="version" class="version">v1.0.0</span>
     </div>
   </div>
-
-  <!-- Version badge (outside #terminal so it doesn't scroll with content) -->
-  <div id="version" class="version">v1.0.0</div>
 
   <script src="app.js" defer></script>
 </body>

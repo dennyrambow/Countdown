@@ -68,6 +68,7 @@ html, body {
     border-radius: 0 0 20px 20px;
     z-index: 10;
   }
+
 }
 
 /* CRT scanlines effect via pseudo-element */
@@ -379,46 +380,45 @@ html, body {
   }
 }
 
-/* Version badge - fixed bottom left corner (outside scroll area) */
+/* Version zone — always at bottom of #terminal flex column */
+.version-bar {
+  flex-shrink: 0;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 .version {
-  position: fixed;
-  bottom: 12px;
-  left: 14px;
   color: rgba(0, 255, 102, 0.28);
   font-size: 11px;
   letter-spacing: 0.04em;
   pointer-events: none;
-  z-index: 1000;
-}
-
-@media (min-width: 769px) {
-  .version {
-    left: calc(50% - 228px + 14px);
-  }
 }
 
 /* ===== MOBILE OPTIMIZATION ===== */
 
-/* Mobile button container - hidden by default (desktop), shown on mobile only */
+/* Button zone — always reserves 80px in #terminal flex column */
 .mobile-buttons {
-  display: none;
+  flex-shrink: 0;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  padding: 16px;
-  position: fixed;
-  bottom: 36px;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.95);
-  border-top: 1px solid rgba(0, 255, 102, 0.18);
-  z-index: 100;
-  width: 100%;
-  max-width: var(--maxw);
-  margin: 0 auto;
+  padding: 0 16px;
 }
 
-/* Mobile button styling */
+.mobile-buttons.show {
+  background: rgba(0, 0, 0, 0.95);
+  border-top: 1px solid rgba(0, 255, 102, 0.18);
+}
+
+/* Button styling — hidden by default; JS sets display:block to show individually */
 .mobile-button {
   flex: 1;
+  display: none;
   padding: 16px 12px;
   background: transparent;
   border: 1px solid rgba(0, 255, 102, 0.4);
@@ -444,29 +444,16 @@ html, body {
   cursor: not-allowed;
 }
 
-/* Hide keyboard input on mobile, show buttons instead */
+/* Hide keyboard input on mobile */
 @media (max-width: 768px) {
-  /* Extra bottom padding for mobile buttons (buttons at bottom:36px, ~80px tall = 116px from bottom) */
-  .terminalInner {
-    padding-bottom: 130px;
-  }
-
-  /* Hide hidden input field on mobile */
   .hiddenInput {
     display: none !important;
   }
-
-  /* Show mobile buttons on mobile devices only */
-  .mobile-buttons.show {
-    display: flex !important;
-    flex-direction: row;
-    justify-content: space-between;
-  }
 }
 
-/* Centered loading bar for scene transitions */
+/* Centered loading bar for scene transitions — absolute within terminalInner */
 .loading-centered {
-  position: fixed;
+  position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);

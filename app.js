@@ -723,10 +723,10 @@
 
     // Loading bar: 0→100%, full black screen overlay, removed immediately after
     async loadingBar(durationMs = 2000, steps = 28, { silent = false } = {}) {
-      // Full-screen black overlay so no other content shows behind the bar
+      // Black overlay inside terminalInner so bar stays within the text zone
       const overlay = document.createElement("div");
-      overlay.style.cssText = "position:fixed;inset:0;background:#000;z-index:48;pointer-events:none;";
-      document.body.appendChild(overlay);
+      overlay.style.cssText = "position:absolute;inset:0;background:#000;z-index:48;pointer-events:none;";
+      this.root.appendChild(overlay);
 
       const line = document.createElement("div");
       line.className = "line loading-centered";
@@ -1093,13 +1093,8 @@
     return true;
   };
 
-  // Show/hide mobile buttons based on prompt type
+  // Show/hide mobile buttons based on prompt type (shown on all screen sizes)
   const updateMobileButtons = () => {
-    if (!isMobile()) {
-      mobileButtons.classList.remove("show");
-      return;
-    }
-
     // Show ENTER button when waiting for Enter
     if (term._waitingEnter) {
       hiddenInput.classList.remove("keyboard-active");
@@ -1123,9 +1118,19 @@
       return;
     }
 
-    // Text input prompt (name, ROOFTOP) — trigger invisible keyboard on iOS
+    // Text input prompt (name, ROOFTOP) — trigger keyboard
+    // Mobile: hide buttons (keyboard is the only input method)
+    // Desktop: show ENTER button AND keep keyboard active
     if (term.currentPrompt && term.currentPrompt.validator !== validateYN) {
-      mobileButtons.classList.remove("show");
+      if (isMobile()) {
+        mobileButtons.classList.remove("show");
+      } else {
+        mobileBtn1.textContent = "ENTER";
+        mobileBtn1.style.display = "block";
+        mobileBtn2.style.display = "none";
+        mobileBtn3.style.display = "none";
+        mobileButtons.classList.add("show");
+      }
       hiddenInput.classList.add("keyboard-active");
       hiddenInput.focus();
       return;
