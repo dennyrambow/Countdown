@@ -14,6 +14,7 @@
 
 html, body {
   height: 100%;
+  min-height: 100dvh;
   margin: 0;
   padding: 0;
   background: var(--bg);
@@ -26,7 +27,8 @@ html, body {
   position: relative;
   width: 100%;
   max-width: var(--maxw);
-  height: 100vh;
+  height: 100vh;   /* fallback */
+  height: 100dvh;  /* dynamic viewport height: always fits visible area on iOS */
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -383,11 +385,10 @@ html, body {
 /* Version zone — always at bottom of #terminal flex column */
 .version-bar {
   flex-shrink: 0;
-  height: 30px;
   display: flex;
   align-items: center;
-  padding: 0 14px;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding: 6px 14px;
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
 }
 
 .version {
