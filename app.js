@@ -1482,7 +1482,11 @@
     .then((r) => r.json())
     .then((data) => {
       const el = document.getElementById("version");
-      if (el && data.sha) el.textContent = data.sha.slice(0, 7);
+      if (el && data.sha) {
+        const baseVersion = el.textContent; // e.g., "v1.0" from HTML fallback
+        const commitHash = data.sha.slice(0, 7);
+        el.textContent = `${baseVersion}-${commitHash}`;
+      }
     })
     .catch(() => {});
 
