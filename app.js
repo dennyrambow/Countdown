@@ -1678,41 +1678,28 @@
   fetch("https://api.github.com/repos/dennyrambow/Countdown/commits?per_page=1")
     .then((r) => {
       const link = r.headers.get('Link') || "";
-      console.log("Link header:", link);
       let commitCount = 1;
 
       // Extract total commit count from Link header
-      // The Link header has: <...&page=2>; rel="next", <...&page=18>; rel="last"
-      // We need to extract the page number from the "last" link only
+      // GitHub returns: <...&page=2>; rel="next", <...&page=N>; rel="last"
       const lastLinkPart = link.split(',').find((part) => part.includes('rel="last"')) || "";
-      console.log("Last link part:", lastLinkPart);
-      // Match &page=N or ?page=N (avoid matching per_page=1)
       const lastMatch = lastLinkPart.match(/[?&]page=(\d+)/);
-      console.log("Link header match:", lastMatch);
       if (lastMatch) {
         commitCount = parseInt(lastMatch[1], 10);
-        console.log("Extracted commit count:", commitCount);
-      } else {
-        console.log("No 'last' page found in Link header, using fallback count");
       }
 
       return r.json().then((data) => {
-        console.log("API response data:", data);
         if (data.length > 0) {
           const hash = data[0].sha.slice(0, 7);
           const autoVersion = `1.0.${commitCount}`;
           const el = document.getElementById("version");
-          console.log("Version element:", el, "Text will be:", `v${autoVersion}-${hash}`);
           if (el) {
             el.textContent = `v${autoVersion}-${hash}`;
-            console.log(`✓ Version updated: v${autoVersion}-${hash} (${commitCount} commits)`);
           }
         }
       });
     })
-    .catch((err) => {
-      console.error("Version badge fetch failed:", err);
-    });
+    .catch(() => {});
 
   // Start flow
   FLOW().catch((err) => {
