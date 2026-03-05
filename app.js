@@ -629,6 +629,11 @@
       this.lineCount = 0;
     }
 
+    // Content starts at top (e.g. intro/welcome scenes)
+    setTopMode() {
+      this.root.style.justifyContent = 'flex-start';
+    }
+
     // Switch content to vertically centered (e.g. address scene)
     setCentered() {
       this.root.style.justifyContent = 'center';
@@ -1331,6 +1336,7 @@
 
     // ========== SCENE 1: Boot Sequence with Audio ==========
     await term.clearScene();
+    term.setTopMode(); // Intro: content starts at top
 
     // Minimal static prompt for first user interaction
     // This unlocks the AudioContext browser restriction
