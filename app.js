@@ -11,6 +11,7 @@
   // CONFIG
   // =============================
   const CONFIG = {
+    VERSION: "1.0.0",
     SITE_ORIGIN: "countdown.dennyrambow.de",
     TARGET_UTC_ISO: "2026-03-09T23:00:00Z",
     TARGET_LABEL: "10 MARCH · 00:00 (EUROPE/BERLIN)",
@@ -1562,15 +1563,31 @@
     await term.waitForEnter();
   };
 
-  // Auto-update version badge from GitHub commit hash
+  // Auto-update version badge: parse commit message to determine version bump
   fetch("https://api.github.com/repos/dennyrambow/Countdown/commits/main")
     .then((r) => r.json())
     .then((data) => {
       const el = document.getElementById("version");
-      if (el && data.sha) {
-        const baseVersion = el.textContent; // e.g., "v1.0" from HTML fallback
+      if (el && data.sha && data.commit && data.commit.message) {
+        const commitMsg = data.commit.message;
         const commitHash = data.sha.slice(0, 7);
-        el.textContent = `${baseVersion}-${commitHash}`;
+        let [major, minor, patch] = CONFIG.VERSION.split(".").map(Number);
+
+        // Parse commit message prefix to determine version bump
+        if (commitMsg.startsWith("MAJOR:")) {
+          major += 1;
+          minor = 0;
+          patch = 0;
+        } else if (commitMsg.startsWith("FEAT:")) {
+          minor += 1;
+          patch = 0;
+        } else {
+          // Default: patch bump for bug fixes, chores, etc.
+          patch += 1;
+        }
+
+        const newVersion = `${major}.${minor}.${patch}`;
+        el.textContent = `v${newVersion}-${commitHash}`;
       }
     })
     .catch(() => {});

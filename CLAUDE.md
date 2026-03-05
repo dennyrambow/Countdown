@@ -53,3 +53,42 @@ A zero-dependency, vanilla JS/CSS/HTML theatrical party invitation page. It simu
 7. 20-second self-destruct → screen wipe → footer
 
 **Input validators** — `validateYN`, `validateName`, `validateRooftop` enforce strict input rules for each prompt stage.
+
+## Semantic Versioning
+
+The project uses semantic versioning (major.minor.patch) with automatic version bumping based on commit message prefixes.
+
+### Version Bumping Rules
+
+- **MAJOR:** prefix → Major version bump (1.0.0 → 2.0.0)
+- **FEAT:** prefix → Minor version bump (1.0.0 → 1.1.0)
+- All other commits → Patch version bump (1.0.0 → 1.0.1)
+
+The current version is stored in `CONFIG.VERSION` in [app.js](app.js).
+
+### Automatic Git Hook
+
+A pre-commit hook automatically updates `CONFIG.VERSION` based on your commit message. When you commit with:
+```sh
+git commit -m "FEAT: Add new countdown sound effect"
+```
+
+The hook will:
+1. Parse the commit message prefix
+2. Bump the version in `app.js`
+3. Update the version badge fallback in `index.html`
+4. Stage both files automatically
+
+The version badge on the page displays: `v{version}-{commit-hash}` (e.g., `v1.0.1-abc1234`)
+
+### Manual Version Update
+
+If you prefer to update the version manually:
+```sh
+./scripts/update-version.sh [major|minor|patch]
+```
+
+Then commit with the appropriate prefix:
+```sh
+git commit -m "FEAT: Your feature description"
+```
