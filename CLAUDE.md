@@ -56,39 +56,43 @@ A zero-dependency, vanilla JS/CSS/HTML theatrical party invitation page. It simu
 
 ## Semantic Versioning
 
-The project uses semantic versioning (major.minor.patch) with automatic version bumping based on commit message prefixes.
+The version badge displays semantic versioning (major.minor.patch) and automatically increments based on commit message prefixes.
 
-### Version Bumping Rules
+### How It Works
 
-- **MAJOR:** prefix → Major version bump (1.0.0 → 2.0.0)
-- **FEAT:** prefix → Minor version bump (1.0.0 → 1.1.0)
+The version badge (`v{version}-{commit-hash}`) on the page is **automatically calculated** by:
+1. Fetching the latest commit from GitHub
+2. Parsing its message for version bump indicators
+3. Calculating the version from the base version in `CONFIG.VERSION`
+4. Displaying the calculated version with the commit hash
+
+### Commit Message Prefixes
+
+Use these prefixes in your commit messages to control version bumping:
+
+- **MAJOR:** → Major version bump (1.0.0 → 2.0.0)
+- **FEAT:** → Minor version bump (1.0.0 → 1.1.0)
 - All other commits → Patch version bump (1.0.0 → 1.0.1)
 
-The current version is stored in `CONFIG.VERSION` in [app.js](app.js).
+### Examples
 
-### Automatic Git Hook
-
-A pre-commit hook automatically updates `CONFIG.VERSION` based on your commit message. When you commit with:
 ```sh
-git commit -m "FEAT: Add new countdown sound effect"
+# Minor version bump (feature)
+git commit -m "FEAT: Add countdown sound effect"
+
+# Major version bump (breaking change)
+git commit -m "MAJOR: Redesign UI layout"
+
+# Patch version bump (bug fix, chore, etc.)
+git commit -m "Fix audio glitch in Scene 3"
+git commit -m "Update README"
 ```
 
-The hook will:
-1. Parse the commit message prefix
-2. Bump the version in `app.js`
-3. Update the version badge fallback in `index.html`
-4. Stage both files automatically
+### Manual Version Updates (Optional)
 
-The version badge on the page displays: `v{version}-{commit-hash}` (e.g., `v1.0.1-abc1234`)
-
-### Manual Version Update
-
-If you prefer to update the version manually:
+If you need to manually adjust the base version:
 ```sh
 ./scripts/update-version.sh [major|minor|patch]
 ```
 
-Then commit with the appropriate prefix:
-```sh
-git commit -m "FEAT: Your feature description"
-```
+This updates both `app.js` and `index.html` for the fallback display.
