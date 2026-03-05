@@ -1678,21 +1678,30 @@
   fetch("https://api.github.com/repos/dennyrambow/Countdown/commits?per_page=1")
     .then((r) => {
       const link = r.headers.get('Link') || "";
+      console.log("Link header:", link);
       let commitCount = 1;
 
       // Extract total commit count from Link header
       // Format: <...?per_page=1&page=N>; rel="last"
       const lastMatch = link.match(/page=(\d+).*rel="last"/);
-      if (lastMatch) commitCount = parseInt(lastMatch[1], 10);
+      console.log("Link header match:", lastMatch);
+      if (lastMatch) {
+        commitCount = parseInt(lastMatch[1], 10);
+        console.log("Extracted commit count:", commitCount);
+      } else {
+        console.log("No 'last' page found in Link header, using fallback count");
+      }
 
       return r.json().then((data) => {
+        console.log("API response data:", data);
         if (data.length > 0) {
           const hash = data[0].sha.slice(0, 7);
           const autoVersion = `1.0.${commitCount}`;
           const el = document.getElementById("version");
+          console.log("Version element:", el, "Text will be:", `v${autoVersion}-${hash}`);
           if (el) {
             el.textContent = `v${autoVersion}-${hash}`;
-            console.log(`Version: v${autoVersion}-${hash} (${commitCount} commits)`);
+            console.log(`✓ Version updated: v${autoVersion}-${hash} (${commitCount} commits)`);
           }
         }
       });
