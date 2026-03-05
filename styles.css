@@ -40,7 +40,8 @@ html, body {
 @media (min-width: 769px) {
   #terminal {
     max-width: 420px;
-    margin: 0 auto;
+    max-height: 85vh;
+    margin: auto;
   }
 }
 
