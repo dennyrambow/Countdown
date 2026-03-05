@@ -1304,6 +1304,15 @@
     await term.waitForEnter();
   };
 
+  // Auto-update version badge from GitHub commit hash
+  fetch("https://api.github.com/repos/dennyrambow/Countdown-40-Landing-Page/commits/main")
+    .then((r) => r.json())
+    .then((data) => {
+      const el = document.getElementById("version");
+      if (el && data.sha) el.textContent = data.sha.slice(0, 7);
+    })
+    .catch(() => {});
+
   // Start flow
   FLOW().catch((err) => {
     console.error(err);
