@@ -168,22 +168,22 @@
       } catch {}
     };
 
-    // Frequency sweep
+    // Frequency sweep (extended to 1.8s for more dramatic effect)
     const playReveal = () => {
       try {
         const now = ctx().currentTime;
         const osc = ctx().createOscillator();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(200, now);
-        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.4);
+        osc.frequency.exponentialRampToValueAtTime(1200, now + 1.8);
 
         const env = gain(0.12);
         env.gain.setValueAtTime(0.12, now);
-        env.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        env.gain.exponentialRampToValueAtTime(0.01, now + 1.8);
 
         connect(osc, env, ctx().destination);
         osc.start(now);
-        osc.stop(now + 0.4);
+        osc.stop(now + 1.8);
       } catch {}
     };
 
@@ -234,46 +234,188 @@
       } catch {}
     };
 
-    // Background loop: sawtooth + LFO + lowpass
+    // Progress step: sine frequency mapped to percent (0-100)
+    const playProgressStep = (percent = 50) => {
+      try {
+        const minFreq = 80;
+        const maxFreq = 2000;
+        const freq = minFreq * Math.pow(maxFreq / minFreq, percent / 100);
+        const now = ctx().currentTime;
+        const dur = 0.05;
+        const osc = ctx().createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const env = gain(0.08);
+        env.gain.setValueAtTime(0.08, now);
+        env.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        connect(osc, env, ctx().destination);
+        osc.start(now);
+        osc.stop(now + dur);
+      } catch {}
+    };
+
+    // Prompt ready: two rising tones (D5 → A5)
+    const playPromptReady = () => {
+      try {
+        const now = ctx().currentTime;
+        const notes = [[587, now, 0.15], [880, now + 0.13, 0.22]];
+        notes.forEach(([freq, t, dur]) => {
+          const osc = ctx().createOscillator();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          const env = gain(0.12);
+          env.gain.setValueAtTime(0, t);
+          env.gain.linearRampToValueAtTime(0.12, t + 0.03);
+          env.gain.exponentialRampToValueAtTime(0.01, t + dur);
+          connect(osc, env, ctx().destination);
+          osc.start(t);
+          osc.stop(t + dur);
+        });
+      } catch {}
+    };
+
+    // Mission title: low boom + high sparkle
+    const playMissionTitle = () => {
+      try {
+        const now = ctx().currentTime;
+        const osc = ctx().createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(80, now);
+        osc.frequency.exponentialRampToValueAtTime(35, now + 0.5);
+        const env = gain(0.28);
+        env.gain.setValueAtTime(0.28, now);
+        env.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        connect(osc, env, ctx().destination);
+        osc.start(now);
+        osc.stop(now + 0.6);
+        setTimeout(() => playBeep(1200, 0.15), 80);
+        setTimeout(() => playBeep(1800, 0.12), 220);
+      } catch {}
+    };
+
+    // Enter confirm: two rapid ascending tones
+    const playEnterConfirm = () => {
+      try {
+        const now = ctx().currentTime;
+        const notes = [[600, now, 0.07], [900, now + 0.08, 0.1]];
+        notes.forEach(([freq, t, dur]) => {
+          const osc = ctx().createOscillator();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          const env = gain(0.13);
+          env.gain.setValueAtTime(0.13, t);
+          env.gain.exponentialRampToValueAtTime(0.01, t + dur);
+          connect(osc, env, ctx().destination);
+          osc.start(t);
+          osc.stop(t + dur);
+        });
+      } catch {}
+    };
+
+    // Modem chaos: rapid FSK-like frequency shifts
+    const playModem = (duration = 2.0) => {
+      try {
+        const now = ctx().currentTime;
+        const freqs = [1200, 2200, 1800, 980, 600, 1400, 2400, 880, 440, 3000];
+        const step = 0.035;
+        const steps = Math.floor(duration / step);
+        for (let i = 0; i < steps; i++) {
+          const t = now + i * step;
+          const freq = freqs[Math.floor(Math.random() * freqs.length)];
+          const osc = ctx().createOscillator();
+          osc.type = i % 4 === 0 ? 'square' : i % 3 === 0 ? 'sawtooth' : 'sine';
+          osc.frequency.value = freq;
+          const env = gain(0.055);
+          env.gain.setValueAtTime(0.055, t);
+          env.gain.exponentialRampToValueAtTime(0.001, t + step);
+          connect(osc, env, ctx().destination);
+          osc.start(t);
+          osc.stop(t + step + 0.005);
+        }
+      } catch {}
+    };
+
+    // Address reveal: long sweep 80 Hz → 2400 Hz + accent tones
+    const playAddressReveal = () => {
+      try {
+        const now = ctx().currentTime;
+        const osc = ctx().createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(80, now);
+        osc.frequency.exponentialRampToValueAtTime(2400, now + 1.8);
+        const env = gain(0.15);
+        env.gain.setValueAtTime(0.01, now);
+        env.gain.linearRampToValueAtTime(0.15, now + 0.3);
+        env.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+        connect(osc, env, ctx().destination);
+        osc.start(now);
+        osc.stop(now + 2.0);
+        setTimeout(() => playBeep(1400, 0.2), 1600);
+        setTimeout(() => playBeep(2000, 0.15), 1900);
+      } catch {}
+    };
+
+    // Background loop: countdown second ticker + sub-bass drone
     const startLoop = () => {
       try {
         if (audioContext && audioContext.state === 'suspended') {
           audioContext.resume();
         }
 
-        const now = ctx().currentTime;
-        const osc = ctx().createOscillator();
-        osc.type = 'sawtooth';
-        osc.frequency.value = 55; // A1
+        let loopTimer = null;
+        let nextTick = ctx().currentTime + 0.05;
 
-        const lfo = ctx().createOscillator();
-        lfo.frequency.value = 0.1;
+        const playTick = (t) => {
+          try {
+            const bufLen = Math.ceil(ctx().sampleRate * 0.018);
+            const buf = ctx().createBuffer(1, bufLen, ctx().sampleRate);
+            const d = buf.getChannelData(0);
+            for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            const src = ctx().createBufferSource();
+            src.buffer = buf;
+            const f = ctx().createBiquadFilter();
+            f.type = 'bandpass';
+            f.frequency.value = 1800;
+            f.Q.value = 2;
+            const g = gain(CONFIG.AUDIO.volumeLoop * 3);
+            g.gain.setValueAtTime(CONFIG.AUDIO.volumeLoop * 3, t);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.018);
+            connect(src, f, g, ctx().destination);
+            src.start(t);
+            src.stop(t + 0.02);
+          } catch {}
+        };
 
-        const lfoGain = gain(10);
-        const filter = ctx().createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = 200;
+        // Sub-bass drone for atmosphere
+        const droneOsc = ctx().createOscillator();
+        droneOsc.type = 'sine';
+        droneOsc.frequency.value = 40;
+        const droneGain = gain(CONFIG.AUDIO.volumeLoop * 0.4);
+        connect(droneOsc, droneGain, ctx().destination);
+        droneOsc.start();
 
-        const masterGain = gain(CONFIG.AUDIO.volumeLoop);
+        const schedule = () => {
+          const lookahead = ctx().currentTime + 0.2;
+          while (nextTick < lookahead) {
+            playTick(nextTick);
+            nextTick += 1.0;
+          }
+        };
 
-        connect(lfo, lfoGain, osc.frequency);
-        connect(osc, filter, masterGain, ctx().destination);
-
-        osc.start(now);
-        lfo.start(now);
-
-        loopNode = { osc, lfo, masterGain };
+        loopTimer = setInterval(schedule, 100);
+        schedule();
+        loopNode = { drone: droneOsc, droneGain, timer: loopTimer };
       } catch {}
     };
 
     const stopLoop = () => {
       try {
         if (loopNode) {
-          loopNode.masterGain.gain.exponentialRampToValueAtTime(0.001, ctx().currentTime + 0.5);
+          clearInterval(loopNode.timer);
+          loopNode.droneGain.gain.exponentialRampToValueAtTime(0.0001, ctx().currentTime + 0.5);
           setTimeout(() => {
-            if (loopNode) {
-              loopNode.osc.stop();
-              loopNode.lfo.stop();
+            if (loopNode?.drone) {
+              loopNode.drone.stop();
               loopNode = null;
             }
           }, 500);
@@ -292,6 +434,12 @@
         reveal: playReveal,
         destruct: playDestruct,
         progress: playProgress,
+        progressStep: playProgressStep,
+        promptReady: playPromptReady,
+        missionTitle: playMissionTitle,
+        enterConfirm: playEnterConfirm,
+        modem: playModem,
+        addressReveal: playAddressReveal,
       },
     };
   })();
@@ -398,7 +546,7 @@
         const filled = "█".repeat(i);
         const empty = "░".repeat(steps - i);
         line.textContent = `[${filled}${empty}] ${String(pct).padStart(3, " ")}%`;
-        if (i % 4 === 0) AudioBus.sfx.progress();
+        if (i % 4 === 0) AudioBus.sfx.progressStep(pct);
         await this.sleep(stepDelay);
       }
       // Remove immediately after reaching 100%
@@ -422,7 +570,7 @@
         const filled = "█".repeat(i);
         const empty = "░".repeat(steps - i);
         line.textContent = `${label} [${filled}${empty}] ${String(percent).padStart(3, " ")}%`;
-        if (i % 3 === 0) AudioBus.sfx.progress();
+        if (i % 3 === 0) AudioBus.sfx.progressStep(percent);
         await this.sleep(delay);
       }
       // Remove immediately after reaching 100%
@@ -493,6 +641,9 @@
       this.appendBlank();
       this.appendBlank();
 
+      // Play "ready for input" chime
+      AudioBus.sfx.promptReady();
+
       const line = document.createElement("div");
       line.className = "line prompt";
 
@@ -562,6 +713,7 @@
           const c = this._waitingEnter.el.querySelector(".cursor");
           if (c) c.classList.remove("blink");
           this.stopCursorFlicker();
+          AudioBus.sfx.enterConfirm();
           const res = this._waitingEnter.resolve;
           this._waitingEnter = null;
           res();
@@ -583,6 +735,7 @@
         if (result.ok) {
           p.cursorSpan.classList.remove("blink");
           this._finalizePrompt();
+          AudioBus.sfx.enterConfirm();
           p.resolve(result.value);
         } else {
           AudioBus.sfx.beep();
@@ -892,6 +1045,9 @@
     missionTagline.textContent = "MAKE IT LEGENDARY · LEVEL 40 AWAITS · ROOFTOP FOREVER";
     missionBox.appendChild(missionTagline);
 
+    // Play mission title accent sound
+    AudioBus.sfx.missionTitle();
+
     terminalInner.appendChild(missionBox);
     term.lineCount++;
 
@@ -1188,12 +1344,14 @@
     term.appendBlank();
     const transLine = await term.typeLine("TRANSMITTING COORDINATES", { dim: true, durationMs: 1800 });
     transLine.classList.add("system-dots");
+    AudioBus.sfx.modem(3.0);
     await term.sleep(3000);
 
     AudioBus.sfx.reveal();
     await term.sleep(300);
     const verifiedLine = await term.typeLine("COORDINATES VERIFIED", { dim: true, durationMs: 1800 });
     verifiedLine.classList.add("system-dots");
+    AudioBus.sfx.modem(1.2);
     await term.sleep(3000);
 
     term.appendBlank();
@@ -1205,6 +1363,7 @@
     term.appendBlank();
     // Only the address in the box
     const addressOnly = CONFIG.ADDRESS_TEXT.slice(1); // Skip "LOCATION RECEIVED"
+    AudioBus.sfx.addressReveal();
     const addressBlock = term.appendBlock(addressOnly);
     addressBlock.classList.add("blink-line");
 
