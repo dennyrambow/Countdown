@@ -236,6 +236,37 @@
       } catch {}
     };
 
+    // Modem-style tick: short digital click for progress bars
+    const playTick = () => {
+      try {
+        const now = ctx().currentTime;
+        const dur = 0.04; // 40ms digital click
+
+        // Square wave with quick decay (modem-like)
+        const osc = ctx().createOscillator();
+        osc.type = 'square';
+        osc.frequency.value = 800; // Bright digital tone
+
+        const env = gain(0.18);
+        env.gain.setValueAtTime(0.18, now);
+        env.gain.exponentialRampToValueAtTime(0.01, now + dur);
+
+        connect(osc, env, ctx().destination);
+        osc.start(now);
+        osc.stop(now + dur);
+      } catch {}
+    };
+
+    // Calculate tick delay (in ms) based on progress percentage
+    const getTickDelayMs = (percent) => {
+      if (percent < 30) return 250;
+      if (percent < 60) return 160;
+      if (percent < 80) return 90;
+      if (percent < 95) return 50;
+      if (percent < 100) return 20;
+      return 0; // Stop at 100%
+    };
+
     // Progress step: deep bass swell (low frequencies, resonant build)
     const playProgressStep = (percent = 50) => {
       try {
@@ -502,10 +533,50 @@
       } catch {}
     };
 
+    // Progress tick loop: plays accelerating ticks based on progress percentage
+    let tickLoopTimer = null;
+    let lastTickTime = 0;
+
+    const startProgressTicks = (getProgressFn) => {
+      if (tickLoopTimer) return; // Already running
+
+      const tick = () => {
+        const now = Date.now();
+        const percent = getProgressFn();
+        const delay = getTickDelayMs(percent);
+
+        if (delay === 0) {
+          // Progress complete: stop ticks and play beep
+          clearInterval(tickLoopTimer);
+          tickLoopTimer = null;
+          playBeep(1000, 0.2); // Confirmation beep
+          return;
+        }
+
+        // Play tick if enough time has passed since last tick
+        if (now - lastTickTime >= delay) {
+          playTick();
+          lastTickTime = now;
+        }
+      };
+
+      lastTickTime = Date.now();
+      tickLoopTimer = setInterval(tick, 10); // Check every 10ms for tight timing
+    };
+
+    const stopProgressTicks = () => {
+      if (tickLoopTimer) {
+        clearInterval(tickLoopTimer);
+        tickLoopTimer = null;
+      }
+    };
+
     return {
       start: startLoop,
       stop: stopLoop,
       startTicker,
+      startProgressTicks,
+      stopProgressTicks,
       sfx: {
         type: playTypeClick,
         beep: playBeep,
@@ -522,6 +593,7 @@
         addressReveal: playAddressReveal,
         bombTick: playBombTick,
         tensionLoop: playTensionLoop,
+        tick: playTick,
       },
     };
   })();
@@ -545,6 +617,8 @@
       // Scroll to top and clear all content
       this.root.innerHTML = "";
       this.lineCount = 0;
+      // Stop any running progress ticks
+      AudioBus.stopProgressTicks();
     }
 
 
@@ -623,16 +697,22 @@
       this.lineCount++;
 
       const stepDelay = Math.max(10, Math.floor(durationMs / steps));
+      let currentPercent = 0;
+
+      // Start dynamic modem-style ticking
+      AudioBus.startProgressTicks(() => currentPercent);
+
       for (let i = 0; i <= steps; i++) {
         const pct = Math.floor((i / steps) * 100);
+        currentPercent = pct;
         const filled = "█".repeat(i);
         const empty = "░".repeat(steps - i);
         line.textContent = `[${filled}${empty}] ${String(pct).padStart(3, " ")}%`;
-        if (i % 4 === 0) AudioBus.sfx.progressStep(pct);
         await this.sleep(stepDelay);
       }
       // Remove immediately after reaching 100%
       try { line.remove(); } catch {}
+      AudioBus.stopProgressTicks(); // Ensure ticks are stopped
       return line;
     }
 
@@ -646,17 +726,23 @@
       const startStep = Math.floor(steps * startAt);
       const finalStep = endAtStep !== null ? endAtStep : steps;
 
+      let currentPercent = 0;
+
+      // Start dynamic modem-style ticking
+      AudioBus.startProgressTicks(() => currentPercent);
+
       for (let i = startStep; i <= finalStep; i++) {
         let percent = Math.floor((i / steps) * 100);
         if (capPercent !== null) percent = Math.min(percent, capPercent);
+        currentPercent = percent;
         const filled = "█".repeat(i);
         const empty = "░".repeat(steps - i);
         line.textContent = `${label} [${filled}${empty}] ${String(percent).padStart(3, " ")}%`;
-        if (i % 3 === 0) AudioBus.sfx.progressStep(percent);
         await this.sleep(delay);
       }
       // Remove immediately after reaching 100%
       try { line.remove(); } catch {}
+      AudioBus.stopProgressTicks(); // Ensure ticks are stopped
       return line;
     }
 
