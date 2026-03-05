@@ -94,36 +94,39 @@ html, body {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: transparent;
-  padding: 20px 16px 16px;
   display: none;
-  text-align: left;
 }
 
 .stickyBar.on {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border: 1px solid rgba(0, 255, 102, 0.3);
+  border-radius: 6px;
+  margin: 8px 16px;
+  background: rgba(0, 0, 0, 0.8);
 }
 
 .stickyLabel {
-  font-size: 12px;
-  letter-spacing: 0.06em;
+  font-size: 10px;
+  letter-spacing: 0.04em;
   color: var(--fg-dim);
-  margin-bottom: 8px;
+  margin-bottom: 0;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .stickyCountdown {
-  font-size: 36px;
+  font-size: 14px;
   font-weight: normal;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   color: var(--fg);
-  text-shadow: 0 0 20px rgba(0, 255, 102, 0.4);
   font-family: ui-monospace, Menlo, Consolas, monospace;
-  padding: 14px 20px;
-  border: 2px solid rgba(0, 255, 102, 0.3);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.8);
-  display: inline-block;
+  padding: 0;
+  border: none;
+  background: transparent;
+  display: inline;
 }
 
 /* Main content area */
@@ -451,4 +454,27 @@ html, body {
     flex-direction: row;
     justify-content: space-between;
   }
+}
+
+/* Centered loading bar for scene transitions */
+.loading-centered {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  z-index: 10;
+}
+
+/* Invisible keyboard trigger for iPhone text input */
+.hiddenInput.keyboard-active {
+  display: block !important;
+  opacity: 0 !important;
+  position: fixed !important;
+  bottom: 80px !important;
+  left: 50% !important;
+  width: 1px !important;
+  height: 1px !important;
+  pointer-events: none !important;
+  z-index: 200 !important;
 }

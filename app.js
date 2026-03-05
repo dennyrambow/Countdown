@@ -22,7 +22,7 @@
     EVENT_DETAILS: [
       "DATE: MONDAY · MARCH 9 2026",
       "START: ~21:00",
-      "EXECUTION: 10. MÄRZ · 00:00:00 UHR",
+      "EXECUTION: 10 MARCH · 00:00:00 CET",
       "DRESSCODE: URBAN STEALTH · BERLIN CASUAL",
       "EXIT STRATEGY: LEAVE ANYTIME",
       "",
@@ -618,6 +618,7 @@
   class TerminalEngine {
     constructor(root) {
       this.root = root;
+      this.scrollEl = this.root.parentElement; // #terminal (overflow-y: auto)
       this.currentPrompt = null;
       this._waitingEnter = null;
       this._countdownInterval = null;
@@ -696,6 +697,7 @@
         if (this._destroyed) return;
         el.textContent += text[i];
         if (text[i] !== " ") AudioBus.sfx.type();
+        if (this.scrollEl) this.scrollEl.scrollTop = this.scrollEl.scrollHeight;
 
         const speed = glitch ? this._getGlitchSpeed(actualSpeed) : actualSpeed;
         await this.sleep(speed);
@@ -706,7 +708,7 @@
     // Loading bar: 0→100%, no label text, removed immediately after
     async loadingBar(durationMs = 2000, steps = 28) {
       const line = document.createElement("div");
-      line.className = "line";
+      line.className = "line loading-centered";
       this.root.appendChild(line);
       this.lineCount++;
 
@@ -1078,6 +1080,7 @@
 
     // Show ENTER button when waiting for Enter
     if (term._waitingEnter) {
+      hiddenInput.classList.remove("keyboard-active");
       mobileBtn1.textContent = "ENTER";
       mobileBtn1.style.display = "block";
       mobileBtn2.style.display = "none";
@@ -1088,6 +1091,7 @@
 
     // Show YES/NO buttons for Y/N prompts
     if (term.currentPrompt && term.currentPrompt.validator === validateYN) {
+      hiddenInput.classList.remove("keyboard-active");
       mobileBtn1.textContent = "YES";
       mobileBtn1.style.display = "block";
       mobileBtn2.textContent = "NO";
@@ -1097,7 +1101,16 @@
       return;
     }
 
-    // Hide buttons for text input prompts (use keyboard)
+    // Text input prompt (name, ROOFTOP) — trigger invisible keyboard on iOS
+    if (term.currentPrompt && term.currentPrompt.validator !== validateYN) {
+      mobileButtons.classList.remove("show");
+      hiddenInput.classList.add("keyboard-active");
+      hiddenInput.focus();
+      return;
+    }
+
+    // Hide buttons for other cases, remove keyboard trigger
+    hiddenInput.classList.remove("keyboard-active");
     mobileButtons.classList.remove("show");
   };
 
@@ -1258,6 +1271,39 @@
   };
 
   // =============================
+  // FERNSEHTURM ASCII ART
+  // =============================
+  const FERNSEHTURM_ART = [
+    "          │          ",
+    "          │          ",
+    "          │          ",
+    "          │          ",
+    "          │          ",
+    "          │          ",
+    "         ╓┤╖         ",
+    "       ╔═╝·╚═╗       ",
+    "      ╔╝·····╚╗      ",
+    "      ║·······║      ",
+    "      ╠═══════╣      ",
+    "      ║·······║      ",
+    "      ╚╗·····╔╝      ",
+    "       ╚═╗·╔═╝       ",
+    "         ╚╤╝         ",
+    "          │          ",
+    "         ─┼─         ",
+    "          │          ",
+    "         ─┼─         ",
+    "          │          ",
+    "         ─┼─         ",
+    "          │          ",
+    "         ─┼─         ",
+    "          │          ",
+    "   ═══════╧═══════   ",
+    " ┌┐ ┌──┐  ┌──┐ ┌┐  ",
+    " └┘ └──┘  └──┘ └┘  ",
+  ];
+
+  // =============================
   // FLOW (Scenes)
   // =============================
   const FLOW = async () => {
@@ -1268,6 +1314,8 @@
 
     // Minimal static prompt for first user interaction
     // This unlocks the AudioContext browser restriction
+    await term.typeLine("♪  SOUND ON · TURN UP YOUR VOLUME", { dim: true, durationMs: 1200 });
+    await term.sleep(800);
     await term.waitForEnter("[ PRESS ENTER TO INITIALIZE ]");
 
     // FIRST USER INTERACTION — Unlock audio for iOS
@@ -1279,19 +1327,19 @@
     await term.sleep(900);
 
     // Boot sequence now WITH audio (type clicks play automatically)
-    const initLine = await term.typeLine("INITIALIZING SYSTEM", { dim: true, durationMs: 1600 });
+    const initLine = await term.typeLine("INITIALIZING SYSTEM", { dim: true, durationMs: 1200 });
     initLine.classList.add("system-dots");
     await term.sleep(300);
     AudioBus.sfx.beep(400, 0.15); // Low beep confirmation
     await term.sleep(400);
 
-    const channelLine = await term.typeLine("SECURE CHANNEL ESTABLISHED", { dim: true, durationMs: 2000 });
+    const channelLine = await term.typeLine("SECURE CHANNEL ESTABLISHED", { dim: true, durationMs: 1400 });
     channelLine.classList.add("system-dots");
     await term.sleep(300);
     AudioBus.sfx.beep(600, 0.15); // Mid beep
     await term.sleep(400);
 
-    const transmitLine = await term.typeLine("TRANSMISSION RECEIVED", { dim: true, durationMs: 1800 });
+    const transmitLine = await term.typeLine("TRANSMISSION RECEIVED", { dim: true, durationMs: 1200 });
     transmitLine.classList.add("system-dots");
     await term.sleep(300);
     AudioBus.sfx.beep(800, 0.15); // High beep
@@ -1304,13 +1352,13 @@
     await term.clearScene();
     await term.loadingBar(2000);
 
-    await term.typeLine("HELLO AGENT", { durationMs: 1400 });
-    await term.sleep(300);
-    await term.typeLine("YOU ARE INVITED!", { durationMs: 1800 });
+    await term.typeLine("HELLO AGENT", { durationMs: 1000 });
+    await term.sleep(2000);
+    await term.typeLine("YOU ARE INVITED!", { durationMs: 1400 });
     await term.sleep(2000);
 
     term.appendBlank();
-    await term.typeLine("YOUR MISSION:", { durationMs: 1600 });
+    await term.typeLine("YOUR MISSION:", { durationMs: 1000 });
     await term.sleep(4000);
 
     // Mission box with all info
@@ -1359,16 +1407,17 @@
     await term.clearScene();
     await term.loadingBar(2000);
 
-    await term.typeLine("PLEASE LOOK INTO THE CAMERA", { durationMs: 2200 });
-    await term.sleep(3000);
-    const eyesLine = await term.typeLine("OPEN YOUR EYES", { durationMs: 1600 });
+    const camLine = await term.typeLine("PLEASE LOOK INTO THE CAMERA  ↑", { durationMs: 1400 });
+    camLine.classList.add("system-dots");
+    await term.sleep(2000);
+    const eyesLine = await term.typeLine("OPEN YOUR EYES", { durationMs: 1200 });
     eyesLine.classList.add("system-dots");
     await term.sleep(2000);
     await term.typeLine("and smile 😊", { durationMs: 1200 });
     await term.sleep(2000);
 
     term.appendBlank();
-    const scanLine = await term.typeLine("SCANNING AGENT CREDENTIALS", { dim: true, durationMs: 1800 });
+    const scanLine = await term.typeLine("SCANNING AGENT CREDENTIALS", { dim: true, durationMs: 1400 });
     scanLine.classList.add("system-dots");
     AudioBus.sfx.modem(1.5); // Analysis chaos sound
     await term.sleep(1800); // Long pause for analysis
@@ -1383,31 +1432,40 @@
     AudioBus.sfx.beep(900, 0.1);
     await term.sleep(400);
 
-    const verifyLine = await term.typeLine("VERIFYING IDENTITY", { dim: true, durationMs: 1800 });
+    const verifyLine = await term.typeLine("VERIFYING IDENTITY", { dim: true, durationMs: 1400 });
     verifyLine.classList.add("system-dots");
     AudioBus.sfx.modem(0.8);
     await term.sleep(1200);
 
-    const confirmLine = await term.typeLine("SECURE CHANNEL CONFIRMED", { dim: true, durationMs: 1800 });
+    const confirmLine = await term.typeLine("SECURE CHANNEL CONFIRMED", { dim: true, durationMs: 1400 });
     confirmLine.classList.add("system-dots");
     await term.sleep(400);
     AudioBus.sfx.beep(1200, 0.15); // High confirm beep
-    await term.sleep(300);
-    await term.typeLine("IDENTITY APPROVED", { durationMs: 2000 });
+    await term.sleep(600);
+    await term.typeLine("IDENTITY APPROVED", { durationMs: 1000 });
+    await term.sleep(400);
+    AudioBus.sfx.beep(1200, 0.15);
+    await term.sleep(600);
 
-    term.appendBlank();
-    term.appendBlank();
-    await term.typeLine("WELCOME AGENT TO UNIT ROOFTOP.", { durationMs: 2200 });
+    await term.loadingBar(1600);
+    await term.clearScene();
+    await term.loadingBar(1600);
 
-    await term.sleep(8000);
+    await term.typeLine("WELCOME AGENT", { durationMs: 1000 });
+    await term.sleep(2000);
+    await term.typeLine("TO UNIT ROOFTOP.", { durationMs: 1000 });
+    await term.sleep(1500);
+
+    term.appendBlock(FERNSEHTURM_ART);
+    await term.sleep(4000);
 
     const ready = await promptYNWithConfirmation("READY FOR YOUR MISSION BRIEFING? [Y/N]");
 
     if (ready === "N") {
       await term.clearScene();
-      await term.typeLine("BRIEFING ABORTED.", { dim: true, durationMs: 2200 });
+      await term.typeLine("BRIEFING ABORTED.", { dim: true, durationMs: 1400 });
       term.appendBlank();
-      await term.typeLine("PRESS ENTER TO RESTART", { durationMs: 2000 });
+      await term.typeLine("PRESS ENTER TO RESTART", { durationMs: 1200 });
       await term.waitForEnter();
       return FLOW();
     }
@@ -1505,11 +1563,11 @@
         term.startStickyCountdown();
         AudioBus.startTicker(); // Restart ticks for replayed briefing
 
-        await term.typeLine("REPLAYING BRIEFING (SHORT VERSION)...", { dim: true, durationMs: 2400 });
+        await term.typeLine("REPLAYING BRIEFING (SHORT VERSION)...", { dim: true, durationMs: 1400 });
         await term.sleep(1200);
-        await term.typeLine("You escort him into Level 40. Quietly. Cleanly.", { durationMs: 2800 });
+        await term.typeLine("You escort him into Level 40. Quietly. Cleanly.", { durationMs: 1400 });
         await term.sleep(1200);
-        await term.typeLine("Midnight on a Berlin rooftop. Bring bubbles.", { durationMs: 2400 });
+        await term.typeLine("Midnight on a Berlin rooftop. Bring bubbles.", { durationMs: 1400 });
         await term.sleep(2000);
 
         term.appendBlank();
@@ -1601,7 +1659,7 @@
     await term.clearScene();
     await term.loadingBar(2000);
 
-    const uplinkLine = await term.typeLine("UPLINKING DATA", { dim: true, durationMs: 1800 });
+    const uplinkLine = await term.typeLine("UPLINKING DATA", { dim: true, durationMs: 1400 });
     uplinkLine.classList.add("system-dots");
     await term.progressBar("UPLINK", 50, 100, { startAt: 0, capPercent: 100, endAtStep: 50 });
 
@@ -1648,14 +1706,14 @@
 
     term.appendBlank();
     term.appendBlank();
-    const transLine = await term.typeLine("TRANSMITTING COORDINATES", { dim: true, durationMs: 1800 });
+    const transLine = await term.typeLine("TRANSMITTING COORDINATES", { dim: true, durationMs: 1400 });
     transLine.classList.add("system-dots");
     AudioBus.sfx.modem(3.0);
     await term.sleep(3000);
 
     AudioBus.sfx.reveal();
     await term.sleep(300);
-    const verifiedLine = await term.typeLine("COORDINATES VERIFIED", { dim: true, durationMs: 1800 });
+    const verifiedLine = await term.typeLine("COORDINATES VERIFIED", { dim: true, durationMs: 1400 });
     verifiedLine.classList.add("system-dots");
     AudioBus.sfx.modem(1.2);
     await term.sleep(3000);
@@ -1769,7 +1827,7 @@
     await term.typeLine("MAKE IT LEGENDARY · UNIT ROOFTOP FOREVER", { durationMs: 2200 });
 
     term.appendBlank();
-    await term.typeLine("THANK YOU FOR YOUR SERVICE, AGENT.", { durationMs: 3000 });
+    await term.typeLine("THANK YOU FOR YOUR SERVICE, AGENT.", { durationMs: 1400 });
 
     // 30 seconds for footer
     await term.sleep(30000);
