@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rooftop Countdown — Level 40</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div id="terminal">
+    <!-- Sticky countdown header (shown from Scene 3 onward) -->
+    <div id="stickyBar" class="stickyBar">
+      <div class="stickyLabel">COUNTDOWN TO MISSION START</div>
+      <div id="stickyCountdown" class="stickyCountdown">-- : -- : -- : --</div>
+    </div>
+
+    <!-- Main terminal content area -->
+    <div id="terminalInner" class="terminalInner" aria-live="polite"></div>
+
+    <!-- Hidden input for keyboard capture (mobile-safe) -->
+    <input
+      id="hiddenInput"
+      class="hiddenInput"
+      type="text"
+      inputmode="text"
+      autocomplete="off"
+      autocapitalize="none"
+      spellcheck="false"
+      aria-hidden="true"
+    />
+
+    <!-- Tap-to-focus hint -->
+    <div id="hint" class="hint">tap to focus</div>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
