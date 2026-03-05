@@ -1686,7 +1686,8 @@
       // We need to extract the page number from the "last" link only
       const lastLinkPart = link.split(',').find((part) => part.includes('rel="last"')) || "";
       console.log("Last link part:", lastLinkPart);
-      const lastMatch = lastLinkPart.match(/page=(\d+)/);
+      // Match &page=N or ?page=N (avoid matching per_page=1)
+      const lastMatch = lastLinkPart.match(/[?&]page=(\d+)/);
       console.log("Link header match:", lastMatch);
       if (lastMatch) {
         commitCount = parseInt(lastMatch[1], 10);
