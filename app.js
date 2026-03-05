@@ -236,20 +236,26 @@
       } catch {}
     };
 
-    // Progress step: sine frequency mapped to percent (0-100) — LINEAR for steady swell
+    // Progress step: sine frequency mapped to percent (0-100) — LINEAR with longer sustain for swell
     const playProgressStep = (percent = 50) => {
       try {
         const minFreq = 80;
         const maxFreq = 2000;
         const freq = minFreq + (maxFreq - minFreq) * (percent / 100); // Linear
         const now = ctx().currentTime;
-        const dur = 0.06; // Slightly longer for swell effect
+        const dur = 0.25; // Longer sustain for audible swell (was 0.06s)
         const osc = ctx().createOscillator();
         osc.type = 'sine';
         osc.frequency.value = freq;
-        const env = gain(0.08);
-        env.gain.setValueAtTime(0.08, now);
-        env.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+        // Volume increases with progress for intensity effect
+        const baseVol = 0.06 + (percent / 100) * 0.08; // 0.06 → 0.14 as percent rises
+
+        const env = gain(baseVol);
+        env.gain.setValueAtTime(0.01, now); // Fade in quickly
+        env.gain.linearRampToValueAtTime(baseVol, now + 0.04); // Ramp to full volume
+        env.gain.exponentialRampToValueAtTime(0.001, now + dur); // Long fade out
+
         connect(osc, env, ctx().destination);
         osc.start(now);
         osc.stop(now + dur);
