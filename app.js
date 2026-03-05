@@ -1801,11 +1801,14 @@
           const el = document.getElementById("version");
           if (el) {
             el.textContent = `v${autoVersion}-${hash}`;
+            console.log(`✓ Version updated: v${autoVersion}-${hash}`);
           }
         }
       });
     })
-    .catch(() => {});
+    .catch((err) => {
+      console.error("Version fetch failed:", err);
+    });
 
   // Start flow
   FLOW().catch((err) => {
