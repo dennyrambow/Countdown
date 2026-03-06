@@ -530,3 +530,187 @@ html, body {
   pointer-events: none !important;
   z-index: 200 !important;
 }
+
+/* ===========================
+   AGENT FACE SCAN — Camera Overlay
+   =========================== */
+.camera-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.camera-overlay video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.85) contrast(1.1) saturate(0.6);
+}
+
+/* Green scanlines overlay on top of video */
+.camera-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 255, 102, 0.05) 3px,
+    rgba(0, 255, 102, 0.05) 4px
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Terminal chrome UI on top of video */
+.scan-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 32px;
+  box-sizing: border-box;
+}
+
+/* ASCII corner brackets framing face area */
+.scan-brackets {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  width: min(260px, 55vw);
+  height: min(320px, 60vh);
+}
+
+.bracket {
+  position: absolute;
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 1.4rem;
+  opacity: 0;
+  animation: bracketAppear 0.3s ease forwards;
+}
+
+.bracket.tl { top: 0; left: 0; animation-delay: 0.1s; }
+.bracket.tr { top: 0; right: 0; animation-delay: 0.2s; }
+.bracket.bl { bottom: 0; left: 0; animation-delay: 0.3s; }
+.bracket.br { bottom: 0; right: 0; animation-delay: 0.4s; }
+
+@keyframes bracketAppear {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.scan-label {
+  font-family: var(--font);
+  color: var(--fg);
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  opacity: 0.9;
+  animation: blink 1s step-end infinite;
+}
+
+.scan-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(320px, 70vw);
+}
+
+.scan-bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(0, 255, 102, 0.15);
+  border: 1px solid rgba(0, 255, 102, 0.3);
+}
+
+.scan-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--fg);
+  transition: width 0.12s linear;
+  box-shadow: 0 0 8px rgba(0, 255, 102, 0.6);
+}
+
+.scan-bar-pct {
+  font-family: var(--font);
+  color: var(--fg);
+  font-size: 0.75rem;
+  min-width: 36px;
+  opacity: 0.8;
+}
+
+/* Flash effect on capture */
+@keyframes captureFlash {
+  0%   { background: rgba(255,255,255,0.9); }
+  100% { background: #000; }
+}
+
+.camera-overlay.captured {
+  animation: captureFlash 0.3s ease;
+}
+
+/* ===========================
+   AGENT DOSSIER CARD
+   =========================== */
+.dossier-card {
+  border: 1px solid rgba(0, 255, 102, 0.4);
+  padding: 8px;
+  margin: 12px 0;
+  display: inline-block;
+  background: #000;
+  max-width: 200px;
+}
+
+.dossier-card img {
+  display: block;
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+  filter: sepia(1) hue-rotate(90deg) saturate(3) brightness(0.8);
+}
+
+.dossier-caption {
+  font-family: var(--font);
+  font-size: 0.7rem;
+  color: var(--fg);
+  opacity: 0.8;
+  margin-top: 6px;
+  letter-spacing: 0.08em;
+}
+
+.dossier-download {
+  display: inline-block;
+  margin-top: 6px;
+  font-family: var(--font);
+  font-size: 0.7rem;
+  color: var(--fg);
+  opacity: 0.5;
+  text-decoration: none;
+  letter-spacing: 0.06em;
+}
+
+.dossier-download:hover {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .dossier-card img {
+    width: 140px;
+    height: 140px;
+  }
+  .dossier-card {
+    max-width: 160px;
+  }
+}
