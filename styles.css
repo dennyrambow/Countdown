@@ -400,18 +400,18 @@ html, body {
 
 /* ===== MOBILE OPTIMIZATION ===== */
 
-/* Button zone — always reserves 80px in #terminal flex column */
+/* Button zone — collapses to zero height when no buttons active */
 .mobile-buttons {
   flex-shrink: 0;
-  height: 80px;
+}
+
+.mobile-buttons.show {
   display: flex;
+  height: 80px;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   padding: 0 16px;
-}
-
-.mobile-buttons.show {
   background: rgba(0, 0, 0, 0.95);
   border-top: 1px solid rgba(0, 255, 102, 0.18);
 }
@@ -463,6 +463,13 @@ html, body {
   background: transparent;
   padding: 4px 10px;
   color: var(--fg);
+}
+
+/* Mission summary details block — smaller font to prevent line wrapping */
+.event-details .line {
+  font-size: 12px;
+  letter-spacing: 0;
+  white-space: nowrap;
 }
 
 /* Sound hint info box */

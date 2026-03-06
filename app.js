@@ -24,7 +24,8 @@
       "START: ~ 21:00:00 CET",
       "EXECUTION: 10 MARCH · 00:00:00 CET",
       "DRESSCODE: URBAN STEALTH · BERLIN CASUAL",
-      "EXIT STRATEGY: LEAVE ANYTIME",
+      "EXIT STRATEGY: LEAVE ANYTIME AFTER MIDNIGHT",
+      "",
       "",
       "",
       "LOCATION - LOCKED",
@@ -1085,13 +1086,6 @@
   const mobileBtn2 = document.getElementById("mobileBtn2");
   const mobileBtn3 = document.getElementById("mobileBtn3");
 
-  // Check if device is mobile (only by screen width for desktop, check both for actual mobile devices)
-  const isMobile = () => {
-    // On desktop browsers: use screen width only
-    if (window.innerWidth > 768) return false;
-    // On actual mobile/tablet: screen width <= 768px shows buttons
-    return true;
-  };
 
   // Show/hide mobile buttons based on prompt type (shown on all screen sizes)
   const updateMobileButtons = () => {
@@ -1118,19 +1112,13 @@
       return;
     }
 
-    // Text input prompt (name, ROOFTOP) — trigger keyboard
-    // Mobile: hide buttons (keyboard is the only input method)
-    // Desktop: show ENTER button AND keep keyboard active
+    // Text input prompt (name, ROOFTOP) — show ENTER button + trigger keyboard
     if (term.currentPrompt && term.currentPrompt.validator !== validateYN) {
-      if (isMobile()) {
-        mobileButtons.classList.remove("show");
-      } else {
-        mobileBtn1.textContent = "ENTER";
-        mobileBtn1.style.display = "block";
-        mobileBtn2.style.display = "none";
-        mobileBtn3.style.display = "none";
-        mobileButtons.classList.add("show");
-      }
+      mobileBtn1.textContent = "ENTER";
+      mobileBtn1.style.display = "block";
+      mobileBtn2.style.display = "none";
+      mobileBtn3.style.display = "none";
+      mobileButtons.classList.add("show");
       hiddenInput.classList.add("keyboard-active");
       hiddenInput.focus();
       return;
@@ -1437,6 +1425,7 @@
     // ========== SCENE 3: Identity Scan & Briefing ==========
     await term.clearScene();
     await term.loadingBar(2000);
+    term.setTopMode();
 
     const camLine = await term.typeLine("PLEASE LOOK INTO THE CAMERA  ↑", { durationMs: 1400 });
     camLine.classList.add("system-dots");
@@ -1509,20 +1498,26 @@
     // Show progress bars before briefing
     term.appendBlank();
 
-    // Level 39 at 99%
+    // Level 39: animate fill from 0 → 99%
     const level39Bar = document.createElement("div");
     level39Bar.className = "line";
-    const filled39 = "█".repeat(24);
-    level39Bar.textContent = `LEVEL 39 [${filled39}]  99%`;
     terminalInner.appendChild(level39Bar);
     term.lineCount++;
 
+    for (let i = 0; i <= 24; i++) {
+      const filled = "█".repeat(i);
+      const empty = "░".repeat(24 - i);
+      const pct = Math.min(99, Math.floor((i / 24) * 100));
+      level39Bar.textContent = `LEVEL 39 [${filled}${empty}]  ${pct}%`;
+      await term.sleep(40);
+    }
+
     term.appendBlank();
 
-    // Level 40 IN PROGRESS
+    // Level 40: "IN PROGRESS" text inside the bar brackets
     const level40Bar = document.createElement("div");
     level40Bar.className = "line";
-    level40Bar.textContent = "LEVEL 40 [░░░░░░░░░░░░░░░░░░░░░░] IN PROGRESS";
+    level40Bar.textContent = "LEVEL 40 [IN PROGRESS░░░░░░░░░░░░░]";
     terminalInner.appendChild(level40Bar);
     term.lineCount++;
 
@@ -1579,14 +1574,14 @@
     term.appendBlank();
     let understood = false;
     while (!understood) {
-      const resp = await term.prompt("CONFIRM YOU UNDERSTAND YOUR RESPONSIBILITIES. [Y/N]", {
+      const resp = await term.prompt("REPEAT BRIEFING? [Y/N]", {
         validator: validateYN,
         normalize: (s) => String(s || "").trim(),
         allowedChars: (ch, buffer) => buffer.length === 0 && /[yYnN]/.test(ch),
         maxLen: 1,
       });
 
-      if (resp === "Y") {
+      if (resp === "N") {
         understood = true;
       } else {
         await term.clearScene();
@@ -1611,7 +1606,8 @@
 
     await term.typeLine("MISSION SUMMARY", { durationMs: 2000 });
     term.appendBlank();
-    term.appendBlock(CONFIG.EVENT_DETAILS);
+    const detailsBlock = term.appendBlock(CONFIG.EVENT_DETAILS);
+    detailsBlock.classList.add("event-details");
 
     const confirmSummary = await promptYNWithConfirmation("CONFIRM MISSION DETAILS? [Y/N]");
 
@@ -1630,6 +1626,7 @@
     await term.clearScene();
     await term.loadingBar(2000);
 
+    term.setTopMode();
     await term.typeLine("THANK YOU, AGENT.", { durationMs: 2000 });
     await term.sleep(500);
     await term.typeLine("WE WON'T FORGET THIS.", { dim: true, durationMs: 2200 });
@@ -1692,8 +1689,8 @@
 
     const uplinkLine = await term.typeLine("UPLINKING DATA", { dim: true, durationMs: 1400 });
     uplinkLine.classList.add("system-dots");
-    AudioBus.sfx.modem(2.5); // Uplink: modem sound instead of standard progress ticks
-    await term.loadingBar(2500, 16, { silent: true }); // Short bar (fits one line), silent ticks
+    AudioBus.sfx.modem(2.5); // Uplink: modem sound
+    await term.sleep(2500); // Wait for modem sound to finish
 
     let postResult = null;
     try {
