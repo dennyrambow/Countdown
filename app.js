@@ -1520,16 +1520,18 @@
       ],
       [
         "THIS IS A SUPPORT MISSION.",
-        "NO PRESSURE. NO FORMALITIES.",
+        "NO PRESSURE. NO FORMALITIES. GOOD VIBES ONLY.",
         "JUST GOOD PEOPLE ON A BERLIN ROOFTOP.",
-        "YOU CAN BRING YOUR OWN DRINK.",
-        "BUT THERE WILL BE DRINKS PROVIDED.",
+        "",
+        "DRINKS PROVIDED. IF YOU NEED A SPECIAL DRINK, BRING YOUR OWN.",
+        "",
         "TOASTS ARE OPTIONAL.",
         "THE VIEW IS NOT.",
       ],
       [
         "THE FINAL MOMENT WILL OCCUR AT EXACTLY MIDNIGHT.",
         "AT THAT POINT LEVEL 40 WILL BE UNLOCKED.",
+        "",
         "LOCATION: ABOVE GROUND LEVEL.",
         "BRING STEADY NERVES IF YOU'RE AFRAID OF HEIGHTS.",
       ],
@@ -1597,7 +1599,12 @@
       term.appendBlank();
       await term.typeLine("BY CONFIRMING MISSION DETAILS, YOU ACCEPT THE INVITATION.", { dim: true, durationMs: 2000 });
 
-      const confirmSummary = await promptYNWithConfirmation("CONFIRM MISSION DETAILS? [Y/N]");
+      const confirmSummary = await term.prompt("CONFIRM MISSION DETAILS? [Y/N]", {
+        validator: validateYN,
+        normalize: (s) => String(s || "").trim(),
+        allowedChars: (ch, buffer) => buffer.length === 0 && /[yYnN]/.test(ch),
+        maxLen: 1,
+      });
 
       if (confirmSummary === "Y") {
         missionConfirmed = true;
