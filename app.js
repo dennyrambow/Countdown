@@ -1574,7 +1574,7 @@
 
         await term.typeLine("REPLAYING BRIEFING (SHORT VERSION)...", { dim: true, durationMs: 1400 });
         await term.sleep(1200);
-        await term.typeLine("IT'S HIS BIRTHDAY. HELP HIM TO HAVE A GOOD TIME WHEN FACING THE 40TIES.", { durationMs: 1400 });
+        await term.typeLine("IT'S HIS BIRTHDAY. HELP HIM TO HAVE A GOOD TIME WHEN FACING THE 40IES.", { durationMs: 1400 });
         await term.sleep(1200);
         await term.typeLine("RAISING GLASSES AT MIDNIGHT ON A BERLIN ROOFTOP.", { durationMs: 1400 });
         await term.sleep(1200);
