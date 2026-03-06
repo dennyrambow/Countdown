@@ -1138,6 +1138,9 @@
       // YES response
       term.handleKey({ key: "Y", preventDefault: () => {} });
       term.handleKey({ key: "Enter", preventDefault: () => {} });
+    } else if (term.currentPrompt) {
+      // Text input prompts (name, ROOFTOP, etc.) — submit current buffer
+      term.handleKey({ key: "Enter", preventDefault: () => {} });
     }
     updateMobileButtons();
   });
@@ -1156,6 +1159,7 @@
   term.prompt = function(...args) {
     const result = origPrompt(...args);
     updateMobileButtons();
+    result.then(() => updateMobileButtons());
     return result;
   };
 
@@ -1163,6 +1167,7 @@
   term.waitForEnter = function(...args) {
     const result = origWaitForEnter(...args);
     updateMobileButtons();
+    result.then(() => updateMobileButtons());
     return result;
   };
 
@@ -1249,7 +1254,7 @@
   // =============================
   // GOOGLE APPS SCRIPT POST
   // =============================
-  const postRsvp = async ({ name, plus_one }) => {
+  const postRsvp = async ({ name, plus_one, declined = false }) => {
     const endpoint = CONFIG.GOOGLE_APPS_SCRIPT_ENDPOINT;
 
     if (!endpoint) {
@@ -1259,6 +1264,7 @@
     const payload = {
       name,
       plus_one,
+      declined,
       timestamp: new Date().toISOString(),
       source: CONFIG.SITE_ORIGIN,
     };
@@ -1304,22 +1310,6 @@
     "  └┘└┘ ~ ~ ~ ~ ~ ~     ",
   ];
 
-  const FERNSEHTURM_ART = [
-    "    │    ",
-    "    │    ",
-    "   ╓┤╖   ",
-    "  ╔╝·╚╗  ",
-    "  ║·····║  ",
-    "  ╠═══╣  ",
-    "  ╚╗·╔╝  ",
-    "   ╚╤╝   ",
-    "    │    ",
-    "   ─┼─   ",
-    "    │    ",
-    " ════╧════ ",
-    " ┌┐  ┌┐  ",
-    " └┘  └┘  ",
-  ];
 
   // =============================
   // FLOW (Scenes)
@@ -1364,9 +1354,6 @@
     AudioBus.sfx.beep(800, 0.15); // High beep
     await term.sleep(600);
 
-    // Loading transition to Scene 2
-    await term.loadingBar(2000);
-
     // ========== SCENE 2: Mission Invite ==========
     await term.clearScene();
     await term.loadingBar(2000);
@@ -1380,7 +1367,8 @@
     await term.typeLine("YOUR MISSION:", { durationMs: 1000 });
     await term.sleep(4000);
 
-    // Mission box with all info
+    // Mission box with all info — extra space above, then glow on appear
+    term.appendBlank();
     term.appendBlank();
     const missionBox = document.createElement("div");
     missionBox.className = "mission-box";
@@ -1405,6 +1393,8 @@
 
     terminalInner.appendChild(missionBox);
     term.lineCount++;
+    missionBox.classList.add("glow");
+    setTimeout(() => missionBox.classList.remove("glow"), 1900);
 
     // User reads the box for ~10 seconds
     await term.sleep(10000);
@@ -1439,18 +1429,14 @@
     term.appendBlank();
     const scanLine = await term.typeLine("SCANNING AGENT CREDENTIALS", { dim: true, durationMs: 1400 });
     scanLine.classList.add("system-dots");
-    AudioBus.sfx.modem(1.5); // Analysis chaos sound
-    await term.sleep(1800); // Long pause for analysis
-
-    // Rising analysis beeps (system scanning)
-    AudioBus.sfx.beep(300, 0.1);
-    await term.sleep(200);
-    AudioBus.sfx.beep(500, 0.1);
-    await term.sleep(200);
-    AudioBus.sfx.beep(700, 0.1);
-    await term.sleep(200);
-    AudioBus.sfx.beep(900, 0.1);
-    await term.sleep(400);
+    AudioBus.sfx.modem(4.5); // Long scanning modem sound
+    await term.sleep(500);
+    // 8 rising analysis beeps over 4s (300→1350 Hz)
+    for (let i = 0; i < 8; i++) {
+      AudioBus.sfx.beep(300 + i * 150, 0.1);
+      await term.sleep(500);
+    }
+    await term.sleep(500); // total ~5s
 
     const verifyLine = await term.typeLine("VERIFYING IDENTITY", { dim: true, durationMs: 1400 });
     verifyLine.classList.add("system-dots");
@@ -1473,21 +1459,16 @@
     await term.typeLine("WELCOME AGENT", { durationMs: 1000 });
     await term.sleep(2000);
     await term.typeLine("TO UNIT ROOFTOP.", { durationMs: 1000 });
-    await term.sleep(1500);
+    await term.sleep(2000);
 
-    const fernsehturmBlock = term.appendBlock(FERNSEHTURM_ART);
-    fernsehturmBlock.classList.add("fernsehturm");
-    await term.sleep(4000);
-
-    const ready = await promptYNWithConfirmation("READY FOR YOUR MISSION BRIEFING? [Y/N]");
-
-    if (ready === "N") {
-      await term.clearScene();
-      await term.typeLine("BRIEFING ABORTED.", { dim: true, durationMs: 1400 });
-      term.appendBlank();
-      await term.typeLine("PRESS ENTER TO RESTART", { durationMs: 1200 });
-      await term.waitForEnter();
-      return FLOW();
+    let ready = "";
+    while (ready !== "Y") {
+      ready = await promptYNWithConfirmation("READY FOR YOUR MISSION BRIEFING? [Y/N]");
+      if (ready === "N") {
+        term.appendBlank();
+        await term.typeLine("PRESS ENTER WHEN READY FOR MISSION BRIEFING.", { dim: true, durationMs: 1400 });
+        await term.waitForEnter();
+      }
     }
 
     await term.clearScene();
@@ -1591,9 +1572,11 @@
 
         await term.typeLine("REPLAYING BRIEFING (SHORT VERSION)...", { dim: true, durationMs: 1400 });
         await term.sleep(1200);
-        await term.typeLine("You escort him into Level 40. Quietly. Cleanly.", { durationMs: 1400 });
+        await term.typeLine("IT'S HIS BIRTHDAY. HELP HIM TO HAVE A GOOD TIME WHEN FACING THE 40TIES.", { durationMs: 1400 });
         await term.sleep(1200);
-        await term.typeLine("Midnight on a Berlin rooftop. Bring bubbles.", { durationMs: 1400 });
+        await term.typeLine("RAISING GLASSES AT MIDNIGHT ON A BERLIN ROOFTOP.", { durationMs: 1400 });
+        await term.sleep(1200);
+        await term.typeLine("BRING WHATEVER YOU WANT...", { durationMs: 1400 });
         await term.sleep(2000);
 
         term.appendBlank();
@@ -1609,17 +1592,56 @@
     const detailsBlock = term.appendBlock(CONFIG.EVENT_DETAILS);
     detailsBlock.classList.add("event-details");
 
-    const confirmSummary = await promptYNWithConfirmation("CONFIRM MISSION DETAILS? [Y/N]");
-
-    if (confirmSummary === "N") {
-      await term.clearScene();
-      await term.typeLine("MISSION DECLINED.", { dim: true, durationMs: 2200 });
+    let missionConfirmed = false;
+    while (!missionConfirmed) {
       term.appendBlank();
-      await term.typeLine("PRESS ENTER TO RESTART", { durationMs: 2000 });
-      await term.waitForEnter();
-      term.stopStickyCountdown();
-      stickyBar.classList.remove("on");
-      return FLOW();
+      await term.typeLine("BY CONFIRMING MISSION DETAILS, YOU ACCEPT THE INVITATION.", { dim: true, durationMs: 2000 });
+
+      const confirmSummary = await promptYNWithConfirmation("CONFIRM MISSION DETAILS? [Y/N]");
+
+      if (confirmSummary === "Y") {
+        missionConfirmed = true;
+        break;
+      }
+
+      // N branch — ask if they want to decline
+      const wantDecline = await term.prompt("WANT TO DECLINE THE INVITATION? [Y/N]", {
+        validator: validateYN,
+        normalize: (s) => String(s || "").trim(),
+        allowedChars: (ch, buffer) => buffer.length === 0 && /[yYnN]/.test(ch),
+        maxLen: 1,
+      });
+
+      if (wantDecline === "N") {
+        continue; // back to confirm mission details
+      }
+
+      // wantDecline === "Y" — get name and confirm send
+      const declineName = await term.prompt("ENTER YOUR REAL FULL NAME", {
+        validator: validateName,
+        normalize: (s) => String(s || ""),
+        allowedChars: allowedNameChar,
+        maxLen: 40,
+      });
+
+      const sendDecline = await term.prompt("SEND DECLINE? [Y/N]", {
+        validator: validateYN,
+        normalize: (s) => String(s || "").trim(),
+        allowedChars: (ch, buffer) => buffer.length === 0 && /[yYnN]/.test(ch),
+        maxLen: 1,
+      });
+
+      if (sendDecline === "N") {
+        continue; // back to confirm mission details
+      }
+
+      // Send decline to sheet
+      await postRsvp({ name: declineName, plus_one: false, declined: true });
+      term.appendBlank();
+      await term.typeLine("THANK YOU AGENT.", { durationMs: 1400 });
+      await term.sleep(500);
+      await term.typeLine("SEE YOU ON THE NEXT EVENT. HAVE A GREAT DAY.", { durationMs: 2000 });
+      return;
     }
 
     // ========== SCENE 5: Personal Details ==========
@@ -1736,8 +1758,30 @@
     await term.sleep(1000);
     const readyLocation = await promptYNWithConfirmation("READY TO RECEIVE LOCATION? [Y/N]");
     if (readyLocation === "N") {
-      await term.typeLine("STAND BY.", { dim: true, durationMs: 800 });
-      await term.sleep(3000);
+      const wantAbort = await term.prompt("WANT TO ABORT MISSION? [Y/N]", {
+        validator: validateYN,
+        normalize: (s) => String(s || "").trim(),
+        allowedChars: (ch, buffer) => buffer.length === 0 && /[yYnN]/.test(ch),
+        maxLen: 1,
+      });
+      if (wantAbort === "Y") {
+        const sendDecline = await term.prompt("SEND DECLINE? [Y/N]", {
+          validator: validateYN,
+          normalize: (s) => String(s || "").trim(),
+          allowedChars: (ch, buffer) => buffer.length === 0 && /[yYnN]/.test(ch),
+          maxLen: 1,
+        });
+        if (sendDecline === "Y") {
+          await postRsvp({ name, plus_one, declined: true });
+          term.appendBlank();
+          await term.typeLine("THANK YOU AGENT.", { durationMs: 1400 });
+          await term.sleep(500);
+          await term.typeLine("SEE YOU ON THE NEXT EVENT. HAVE A GREAT DAY.", { durationMs: 2000 });
+          return;
+        }
+        // sendDecline === "N" — fall through and proceed with location reveal
+      }
+      // wantAbort === "N" — fall through and proceed with location reveal
     }
     await term.sleep(500);
 
@@ -1764,7 +1808,7 @@
     term.setCentered();
 
     AudioBus.sfx.addressReveal();
-    const addressOnly = CONFIG.ADDRESS_TEXT.slice(1); // Skip "LOCATION RECEIVED"
+    const addressOnly = ["YOUR MISSION LOCATION:", ...CONFIG.ADDRESS_TEXT.slice(1)];
     const addressBlock = term.appendBlock(addressOnly);
     addressBlock.classList.add("blink-line");
 
@@ -1781,33 +1825,16 @@
       if (answer === "Y") {
         locationConfirmed = true;
       } else {
-        // User said No, ask for confirmation
         term.appendBlank();
-        const isReallySure = await term.prompt("ARE YOU SURE? [Y/N]", {
-          validator: validateYN,
-          normalize: (s) => String(s || "").trim(),
-          allowedChars: (ch, buffer) => buffer.length === 0 && /[yYnN]/.test(ch),
-          maxLen: 1,
-        });
-        if (isReallySure === "Y") {
-          // Confirmed No - grant additional time
-          term.appendBlank();
-          await term.typeLine("ADDITIONAL TIME GRANTED.", { dim: true, durationMs: 1400 });
-          term.appendBlank();
-          await term.sleep(10000); // 10 seconds to memorize
-        } else {
-          // Go back to original question
-          term.appendBlank();
-        }
+        await term.typeLine("WRITE IT DOWN OR MAKE A SCREENSHOT!", { dim: true, durationMs: 1600 });
+        term.appendBlank();
+        await term.sleep(15000);
       }
     }
 
-    // Restore cinematic flow for self-destruct scene
-    term.setFlowMode();
-
-    // ========== SCENE 6: Self-Destruct ==========
-    await term.clearScene();
-    await term.loadingBar(2000);
+    // ========== SCENE 6 continued: Self-Destruct inline (address still visible) ==========
+    addressBlock.classList.remove("blink-line");
+    term.appendBlank();
 
     await term.typeLine("THIS BRIEFING WILL SELF-DESTRUCT IN", { dim: true, durationMs: 2400 });
 
@@ -1829,11 +1856,15 @@
     term.stopStickyCountdown();
     await term.wipeScreenAnimated();
 
+    // ========== SCENE 7: Footer ==========
     // Stop all audio after destruction
     AudioBus.stop();
 
     stickyBar.classList.remove("on");
     await term.blackOut(2000);
+
+    // Reset from centered mode before showing footer
+    term.setTopMode();
 
     // Footer
     term.appendBlock(CONFIG.FOOTER_LINES);
@@ -1870,12 +1901,20 @@
     const rooftopBlock = term.appendBlock(ROOFTOP_ART);
     rooftopBlock.classList.add("fernsehturm");
 
-    // 30 seconds for footer
+    // 30 seconds for footer, then final state
     await term.sleep(30000);
     clearInterval(countdownInterval);
-    await term.wipeScreenAnimated();
 
-    await term.waitForEnter();
+    // Hide mobile buttons and show only a blinking cursor — no further interaction
+    mobileButtons.classList.remove("show");
+    const finalLine = document.createElement("div");
+    finalLine.className = "line";
+    const finalCursor = document.createElement("span");
+    finalCursor.className = "cursor blink";
+    finalCursor.textContent = "_";
+    finalLine.appendChild(finalCursor);
+    terminalInner.appendChild(finalLine);
+    term.lineCount++;
   };
 
   // Auto-update version badge: use commit count as patch version
