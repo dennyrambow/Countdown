@@ -1823,11 +1823,13 @@
 
         await term.typeLine("REPLAYING BRIEFING (SHORT VERSION)...", { dim: true, durationMs: 1400 });
         await term.sleep(1200);
-        await term.typeLine("IT'S HIS BIRTHDAY. HELP HIM TO HAVE A GOOD TIME WHEN FACING THE 40IES.", { durationMs: 1400 });
+        await term.typeLine("IT'S HIS BIRTHDAY.", { durationMs: 1400 });
         await term.sleep(1200);
-        await term.typeLine("RAISING GLASSES AT MIDNIGHT ON A BERLIN ROOFTOP.", { durationMs: 1400 });
+        await term.typeLine("HELP HIM HAVE A GOOD TIME.", { durationMs: 1400 });
         await term.sleep(1200);
-        await term.typeLine("BRING WHATEVER YOU WANT...", { durationMs: 1400 });
+        await term.typeLine("AT MIDNIGHT WE ESCORT HIM FROM LEVEL 39 INTO LEVEL 40 ON A BERLIN ROOFTOP.", { durationMs: 1400 });
+        await term.sleep(1200);
+        await term.typeLine("DRINKS ARE PROVIDED — BRING SOMETHING SPECIAL IF YOU LIKE.", { durationMs: 1400 });
         await term.sleep(2000);
 
         term.appendBlank();
