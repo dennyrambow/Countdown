@@ -1312,6 +1312,83 @@
 
 
   // =============================
+  // End Sequence (Self-Destruct + Footer)
+  // =============================
+  const runEndSequence = async () => {
+    // Self-destruct countdown
+    term.appendBlank();
+    await term.typeLine("THIS BRIEFING WILL SELF-DESTRUCT IN", { dim: true, durationMs: 2400 });
+
+    const countdownTotalSec = CONFIG.SELF_DESTRUCT_SECONDS * 1.1 + 1.5;
+    AudioBus.sfx.tensionLoop(countdownTotalSec);
+
+    for (let i = CONFIG.SELF_DESTRUCT_SECONDS; i >= 0; i--) {
+      const intensity = 1 - (i / CONFIG.SELF_DESTRUCT_SECONDS);
+      AudioBus.sfx.bombTick(intensity);
+      await term.typeLine(String(i), { durationMs: 800 });
+      await term.sleep(300);
+    }
+
+    AudioBus.sfx.destruct();
+    await term.sleep(450);
+
+    term.stopStickyCountdown();
+    await term.wipeScreenAnimated();
+
+    // Footer scene
+    AudioBus.stop();
+    stickyBar.classList.remove("on");
+    await term.blackOut(2000);
+    term.setTopMode();
+
+    term.appendBlock(CONFIG.FOOTER_LINES);
+    term.appendBlank();
+
+    const countdownLine = document.createElement("div");
+    countdownLine.className = "line";
+    countdownLine.style.fontSize = "18px";
+    terminalInner.appendChild(countdownLine);
+    term.lineCount++;
+
+    const updateCountdown = () => {
+      const now = new Date();
+      const target = new Date(CONFIG.TARGET_UTC_ISO);
+      const diff = Math.max(0, target - now);
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      const timeStr = `${String(days).padStart(2, '0')} : ${String(hours).padStart(2, '0')} : ${String(minutes).padStart(2, '0')} : ${String(seconds).padStart(2, '0')}`;
+      countdownLine.textContent = timeStr;
+    };
+
+    updateCountdown();
+    const countdownInterval = setInterval(updateCountdown, 1000);
+
+    term.appendBlank();
+    await term.typeLine("MAKE IT LEGENDARY · UNIT ROOFTOP FOREVER", { durationMs: 2200 });
+
+    term.appendBlank();
+    await term.typeLine("THANK YOU FOR YOUR SERVICE, AGENT.", { durationMs: 1400 });
+    await term.sleep(1000);
+    const rooftopBlock = term.appendBlock(ROOFTOP_ART);
+    rooftopBlock.classList.add("fernsehturm");
+
+    await term.sleep(30000);
+    clearInterval(countdownInterval);
+
+    mobileButtons.classList.remove("show");
+    const finalLine = document.createElement("div");
+    finalLine.className = "line";
+    const finalCursor = document.createElement("span");
+    finalCursor.className = "cursor blink";
+    finalCursor.textContent = "_";
+    finalLine.appendChild(finalCursor);
+    terminalInner.appendChild(finalLine);
+    term.lineCount++;
+  };
+
+  // =============================
   // FLOW (Scenes)
   // =============================
   const FLOW = async () => {
@@ -1648,6 +1725,8 @@
       await term.typeLine("THANK YOU AGENT.", { durationMs: 1400 });
       await term.sleep(500);
       await term.typeLine("SEE YOU ON THE NEXT EVENT. HAVE A GREAT DAY.", { durationMs: 2000 });
+      await term.sleep(2000);
+      await runEndSequence();
       return;
     }
 
@@ -1784,6 +1863,8 @@
           await term.typeLine("THANK YOU AGENT.", { durationMs: 1400 });
           await term.sleep(500);
           await term.typeLine("SEE YOU ON THE NEXT EVENT. HAVE A GREAT DAY.", { durationMs: 2000 });
+          await term.sleep(2000);
+          await runEndSequence();
           return;
         }
         // sendDecline === "N" — fall through and proceed with location reveal
@@ -1841,87 +1922,7 @@
 
     // ========== SCENE 6 continued: Self-Destruct inline (address still visible) ==========
     addressBlock.classList.remove("blink-line");
-    term.appendBlank();
-
-    await term.typeLine("THIS BRIEFING WILL SELF-DESTRUCT IN", { dim: true, durationMs: 2400 });
-
-    // Tension swell: exactly matches countdown duration (SELF_DESTRUCT_SECONDS × 1.1s per tick)
-    const countdownTotalSec = CONFIG.SELF_DESTRUCT_SECONDS * 1.1 + 1.5;
-    AudioBus.sfx.tensionLoop(countdownTotalSec);
-
-    for (let i = CONFIG.SELF_DESTRUCT_SECONDS; i >= 0; i--) {
-      const intensity = 1 - (i / CONFIG.SELF_DESTRUCT_SECONDS); // 0 at 10, 1 at 0
-      AudioBus.sfx.bombTick(intensity);
-
-      await term.typeLine(String(i), { durationMs: 800 });
-      await term.sleep(300);
-    }
-
-    AudioBus.sfx.destruct();
-    await term.sleep(450);
-
-    term.stopStickyCountdown();
-    await term.wipeScreenAnimated();
-
-    // ========== SCENE 7: Footer ==========
-    // Stop all audio after destruction
-    AudioBus.stop();
-
-    stickyBar.classList.remove("on");
-    await term.blackOut(2000);
-
-    // Reset from centered mode before showing footer
-    term.setTopMode();
-
-    // Footer
-    term.appendBlock(CONFIG.FOOTER_LINES);
-    term.appendBlank();
-
-    // Display live countdown
-    const countdownLine = document.createElement("div");
-    countdownLine.className = "line";
-    countdownLine.style.fontSize = "18px";
-    terminalInner.appendChild(countdownLine);
-    term.lineCount++;
-
-    const updateCountdown = () => {
-      const now = new Date();
-      const target = new Date(CONFIG.TARGET_UTC_ISO);
-      const diff = Math.max(0, target - now);
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      const timeStr = `${String(days).padStart(2, '0')} : ${String(hours).padStart(2, '0')} : ${String(minutes).padStart(2, '0')} : ${String(seconds).padStart(2, '0')}`;
-      countdownLine.textContent = timeStr;
-    };
-
-    updateCountdown();
-    const countdownInterval = setInterval(updateCountdown, 1000);
-
-    term.appendBlank();
-    await term.typeLine("MAKE IT LEGENDARY · UNIT ROOFTOP FOREVER", { durationMs: 2200 });
-
-    term.appendBlank();
-    await term.typeLine("THANK YOU FOR YOUR SERVICE, AGENT.", { durationMs: 1400 });
-    await term.sleep(1000);
-    const rooftopBlock = term.appendBlock(ROOFTOP_ART);
-    rooftopBlock.classList.add("fernsehturm");
-
-    // 30 seconds for footer, then final state
-    await term.sleep(30000);
-    clearInterval(countdownInterval);
-
-    // Hide mobile buttons and show only a blinking cursor — no further interaction
-    mobileButtons.classList.remove("show");
-    const finalLine = document.createElement("div");
-    finalLine.className = "line";
-    const finalCursor = document.createElement("span");
-    finalCursor.className = "cursor blink";
-    finalCursor.textContent = "_";
-    finalLine.appendChild(finalCursor);
-    terminalInner.appendChild(finalLine);
-    term.lineCount++;
+    await runEndSequence();
   };
 
   // Auto-update version badge: use commit count as patch version
