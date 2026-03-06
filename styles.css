@@ -714,3 +714,61 @@ html, body {
     max-width: 160px;
   }
 }
+
+/* ── INLINE CRT CAMERA PREVIEW ── */
+.crt-preview-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 1.2rem auto;
+}
+
+.crt-preview-screen {
+  position: relative;
+  width: 240px;
+  height: 180px;
+  border: 2px solid var(--fg);
+  box-shadow: 0 0 14px rgba(0, 255, 102, 0.5), 0 0 3px rgba(0, 255, 102, 0.3) inset;
+  overflow: hidden;
+  background: #000;
+}
+
+/* scanlines overlay on live preview */
+.crt-preview-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.18) 3px,
+    rgba(0, 0, 0, 0.18) 4px
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+.crt-preview-screen video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: sepia(0.4) hue-rotate(85deg) saturate(2.5) brightness(0.85) contrast(1.15);
+}
+
+.crt-preview-label {
+  color: var(--fg);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  opacity: 0.65;
+  margin-top: 0.35rem;
+  font-family: inherit;
+}
+
+@media (max-width: 768px) {
+  .crt-preview-screen {
+    width: 160px;
+    height: 120px;
+  }
+}

@@ -619,83 +619,78 @@
   // CAMERA MODULE (Agent Face Scan)
   // =============================
   const CameraModule = (() => {
-    const overlay = document.getElementById("cameraOverlay");
-    const video = document.getElementById("agentVideo");
     const canvas = document.getElementById("captureCanvas");
-    const scanLabel = document.getElementById("scanLabel");
-    const scanBarFill = document.getElementById("scanBarFill");
-    const scanBarPct = document.getElementById("scanBarPct");
-
     let stream = null;
+    let previewBox = null;
+    let previewVideo = null;
+
+    const startPreview = async (container) => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 640 } },
+          audio: false,
+        });
+
+        // Create CRT preview box
+        previewBox = document.createElement("div");
+        previewBox.className = "crt-preview-box";
+
+        const screen = document.createElement("div");
+        screen.className = "crt-preview-screen";
+
+        previewVideo = document.createElement("video");
+        previewVideo.autoplay = true;
+        previewVideo.playsinline = true;
+        previewVideo.muted = true;
+        previewVideo.srcObject = stream;
+
+        const label = document.createElement("div");
+        label.className = "crt-preview-label";
+        label.textContent = "LIVE CAMERA FEED";
+
+        screen.appendChild(previewVideo);
+        previewBox.appendChild(screen);
+        previewBox.appendChild(label);
+        container.appendChild(previewBox);
+
+        // Wait for video metadata to load
+        await new Promise((res) => { previewVideo.onloadedmetadata = res; });
+        previewVideo.play();
+
+        return { error: null };
+      } catch (err) {
+        const errorType = err.name === "NotAllowedError" ? "denied"
+                        : err.name === "NotFoundError"   ? "notfound"
+                        : "other";
+        return { error: errorType };
+      }
+    };
+
+    const takeSnapshot = () => {
+      if (!previewVideo || !stream) return null;
+      canvas.width = previewVideo.videoWidth || 640;
+      canvas.height = previewVideo.videoHeight || 640;
+      canvas.getContext("2d").drawImage(previewVideo, 0, 0);
+      return canvas.toDataURL("image/jpeg", 0.85);
+    };
 
     const stopStream = () => {
       if (stream) {
         stream.getTracks().forEach((t) => t.stop());
         stream = null;
       }
-      video.srcObject = null;
+      if (previewVideo) previewVideo.srcObject = null;
     };
 
-    const runScanAnimation = () => new Promise((resolve) => {
-      let pct = 0;
-      scanBarFill.style.width = "0%";
-      scanBarPct.textContent = "0%";
-      scanLabel.textContent = "[ SCANNING... ]";
-
-      const interval = setInterval(() => {
-        pct += Math.random() * 4 + 1;
-        if (pct >= 100) {
-          pct = 100;
-          clearInterval(interval);
-          scanLabel.textContent = "[ CAPTURED ]";
-          resolve();
-        }
-        scanBarFill.style.width = pct + "%";
-        scanBarPct.textContent = Math.floor(pct) + "%";
-        if (Math.random() > 0.6) AudioBus.sfx.beep();
-      }, 80);
-    });
-
-    const capture = async () => {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 640 } },
-          audio: false,
-        });
-        video.srcObject = stream;
-        await new Promise((res) => { video.onloadedmetadata = res; });
-        video.play();
-
-        overlay.style.display = "flex";
-        await new Promise((res) => setTimeout(res, 800));
-
-        await runScanAnimation();
-        await new Promise((res) => setTimeout(res, 400));
-
-        overlay.classList.add("captured");
-        await new Promise((res) => setTimeout(res, 300));
-        overlay.classList.remove("captured");
-
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 640;
-        canvas.getContext("2d").drawImage(video, 0, 0);
-        const dataURL = canvas.toDataURL("image/jpeg", 0.85);
-
-        stopStream();
-        overlay.style.display = "none";
-        return { dataURL, error: null };
-
-      } catch (err) {
-        stopStream();
-        overlay.style.display = "none";
-        const errorType = err.name === "NotAllowedError" ? "denied"
-                        : err.name === "NotFoundError"   ? "notfound"
-                        : "other";
-        return { dataURL: null, error: errorType };
+    const removePreview = () => {
+      if (previewBox && previewBox.parentNode) {
+        previewBox.parentNode.removeChild(previewBox);
+        previewBox = null;
+        previewVideo = null;
       }
     };
 
-    return { capture };
+    return { startPreview, takeSnapshot, stopStream, removePreview };
   })();
 
   // =============================
@@ -760,12 +755,12 @@
 
       const cap1 = document.createElement("div");
       cap1.className = "dossier-caption";
-      cap1.textContent = "AGENT: UNKNOWN";
+      cap1.textContent = "AGENT: [CLASSIFIED]";
       card.appendChild(cap1);
 
       const cap2 = document.createElement("div");
       cap2.className = "dossier-caption";
-      cap2.textContent = "STATUS: IDENTITY CONFIRMED";
+      cap2.textContent = "CLEARANCE: GRANTED";
       card.appendChild(cap2);
 
       const dl = document.createElement("a");
@@ -1609,57 +1604,85 @@
     await term.loadingBar(2000);
     term.setTopMode();
 
-    const camLine = await term.typeLine("PLEASE LOOK INTO THE CAMERA  ↑", { durationMs: 1400 });
-    camLine.classList.add("system-dots");
-    await term.sleep(2000);
-    const eyesLine = await term.typeLine("OPEN YOUR EYES", { durationMs: 1200 });
-    eyesLine.classList.add("system-dots");
-    await term.sleep(2000);
-    await term.typeLine("and smile 😊", { durationMs: 1200 });
-    await term.sleep(2000);
-
-    // --- AGENT FACE SCAN: Consent Gate ---
+    // BIOMETRIC SCAN ANNOUNCEMENT
     term.appendBlank();
-    await term.typeLine("BIOMETRIC SCAN PROTOCOL DETECTED.", { dim: true, durationMs: 1400 });
-    await term.sleep(400);
-    await term.typeLine("INITIATING FACE RECOGNITION MODULE...", { dim: true, durationMs: 1400 });
-    await term.sleep(800);
-    term.appendBlank();
-    await term.typeLine("PERMISSION REQUIRED TO ACTIVATE OPTICAL SENSOR.", { durationMs: 1400 });
-    await term.typeLine("THIS SCAN IS VOLUNTARY. ANONYMOUS. LOCAL ONLY.", { dim: true, durationMs: 1400 });
-    term.appendBlank();
+    await term.typeLine("BIOMETRIC VERIFICATION REQUIRED.", { durationMs: 1400 });
+    await term.typeLine("THIS STEP USES YOUR CAMERA TO VERIFY YOUR AGENT IDENTITY.", { dim: true, durationMs: 1400 });
+    await term.typeLine("WHEN PROMPTED, PLEASE ALLOW CAMERA ACCESS.", { dim: true, durationMs: 1200 });
+    await term.sleep(600);
+    await term.typeLine("INITIALIZING CAMERA MODULE...", { dim: true, durationMs: 1200 });
+    await term.sleep(500);
 
-    const cameraConsent = await term.prompt("AUTHORIZE CAMERA ACCESS? [Y/N]", {
-      validator: validateYN,
-      normalize: (s) => String(s || "").trim().toUpperCase(),
-      allowedChars: (ch, buffer) => buffer.length === 0 && /[yYnN]/.test(ch),
-      maxLen: 1,
-    });
+    // ATTEMPT CAMERA PREVIEW
+    let photoDataURL = null;
+    const { error: camError } = await CameraModule.startPreview(terminalInner);
 
-    if (cameraConsent === "Y") {
-      const { dataURL, error } = await CameraModule.capture();
-      if (dataURL) {
-        await term.typeLine("OPTICAL SENSOR DEACTIVATED.", { dim: true, durationMs: 1000 });
-        await term.typeLine("BIOMETRIC DATA CAPTURED — LOCAL ONLY.", { dim: true, durationMs: 1200 });
-        term.appendBlank();
-        term.appendDossierCard(dataURL);
-        term.appendBlank();
-        await term.sleep(3000);
-      } else if (error === "denied") {
-        await term.typeLine("OPTICAL SENSOR ACCESS DENIED.", { dim: true, durationMs: 1200 });
-        await term.typeLine("SWITCHING TO MANUAL VERIFICATION PROTOCOL.", { dim: true, durationMs: 1200 });
-        await term.sleep(800);
-      } else {
-        await term.typeLine("NO OPTICAL SENSOR DETECTED.", { dim: true, durationMs: 1200 });
-        await term.typeLine("PROCEEDING WITH ALTERNATE IDENTITY CHECK.", { dim: true, durationMs: 1200 });
-        await term.sleep(800);
+    if (!camError) {
+      // SUCCESS: Camera is running
+      await term.sleep(500);
+
+      await term.typeLine("LOOK INTO THE CAMERA.", { durationMs: 1200 });
+      await term.sleep(1000);
+      await term.typeLine("AND SMILE.", { durationMs: 1000 });
+      await term.sleep(2000);
+
+      // COUNTDOWN
+      for (let i = 3; i >= 1; i--) {
+        const cdLine = await term.typeLine(i.toString(), { durationMs: 800 });
+        cdLine.style.fontSize = "1.4em";
+        cdLine.style.fontWeight = "bold";
+        AudioBus.sfx.beep(700 - (3 - i) * 100, 0.2);
+        if (i > 1) await term.sleep(1000);
       }
+
+      // CAPTURE
+      photoDataURL = CameraModule.takeSnapshot();
+      AudioBus.sfx.beep(1200, 0.35);
+      CameraModule.stopStream();
+      CameraModule.removePreview();
+      await term.sleep(400);
+
+      // PROCESSING
+      await term.typeLine("IMAGE CAPTURED.", { dim: true, durationMs: 900 });
+      await term.sleep(400);
+      await term.typeLine("PROCESSING IDENTITY...", { dim: true, durationMs: 1000 });
+      await term.sleep(600);
+      await term.typeLine("ANALYZING FACIAL PATTERN...", { dim: true, durationMs: 1100 });
+      await term.sleep(700);
+      await term.typeLine("MATCHING AGENT DATABASE...", { dim: true, durationMs: 1100 });
+      await term.sleep(900);
+
+      // AGENT IDENTIFIED
+      await term.typeLine("IDENTITY CONFIRMED.", { durationMs: 1000 });
+      await term.sleep(400);
+      await term.typeLine("AGENT IDENTIFIED.", { durationMs: 1000 });
+      await term.sleep(400);
+      await term.typeLine("HUMAN STATUS: VERY LIKELY.", { durationMs: 1200 });
+      await term.sleep(1000);
+
+      // SHOW DOSSIER
+      term.appendBlank();
+      term.appendDossierCard(photoDataURL);
+      term.appendBlank();
+      await term.sleep(3000);
+
+      // PRIVACY NOTICE
+      await term.typeLine("BIOMETRIC DATA WAS USED", { dim: true, durationMs: 1200 });
+      await term.typeLine("FOR LOCAL VERIFICATION ONLY.", { dim: true, durationMs: 1200 });
+      term.appendBlank();
+      await term.typeLine("NO IMAGE DATA HAS BEEN STORED", { dim: true, durationMs: 1200 });
+      await term.typeLine("OR TRANSMITTED.", { dim: true, durationMs: 1000 });
+      await term.sleep(1500);
+
+    } else if (camError === "denied") {
+      await term.typeLine("CAMERA ACCESS DENIED.", { dim: true, durationMs: 1200 });
+      await term.typeLine("MANUAL IDENTITY VERIFICATION ACTIVATED.", { dim: true, durationMs: 1200 });
+      await term.sleep(1000);
     } else {
-      await term.typeLine("FACIAL RECOGNITION BYPASSED.", { dim: true, durationMs: 1200 });
-      await term.typeLine("IDENTITY VERIFICATION: MANUAL MODE.", { dim: true, durationMs: 1200 });
-      await term.sleep(800);
+      await term.typeLine("NO OPTICAL SENSOR DETECTED.", { dim: true, durationMs: 1200 });
+      await term.typeLine("PROCEEDING WITH ALTERNATE IDENTITY CHECK.", { dim: true, durationMs: 1200 });
+      await term.sleep(1000);
     }
-    // --- End Agent Face Scan ---
 
     term.appendBlank();
     const scanLine = await term.typeLine("SCANNING AGENT CREDENTIALS", { dim: true, durationMs: 1400 });
